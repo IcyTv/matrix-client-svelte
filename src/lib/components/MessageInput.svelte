@@ -104,7 +104,7 @@
 		<AddFilled class="mr-2 h-6 w-6 text-slate-400" />
 	</div>
 	<div
-		class="scrollbar-w-1 max-h-48 flex-grow bg-slate-600 leading-8 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-thumb-rounded-md focus:border-none focus:outline-none"
+		class="language-markdown max-h-48 flex-grow bg-slate-600 leading-8 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-thumb-rounded-md focus:border-none focus:outline-none"
 		autocorrect="false"
 		bind:this={element}
 	/>
