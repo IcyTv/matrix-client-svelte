@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+	.sidebar-icon {
+		@apply hover:sidebar-icon-selected relative mx-auto mt-2 mb-2 flex h-12 w-12 cursor-pointer items-center justify-center
+			rounded-3xl bg-gray-800 text-green-500
+			shadow-lg transition-all duration-300 ease-in-out hover:bg-green-600 hover:text-white;
+	}
+
+	.sidebar-icon-selected {
+		@apply /*
+			before:rounded-lg; */ rounded-xl before:absolute before:top-2 before:-left-2 before:bottom-2 before:w-1 before:bg-gray-300 before:content-[''];
+	}
+
+	.sidebar-tooltip {
+		@apply pointer-events-none absolute left-14 m-2 w-auto min-w-max origin-left scale-0 rounded bg-gray-900 p-2
+			text-sm font-light text-white shadow-md transition-all duration-75
+			before:absolute before:top-1/2 before:right-[100%] before:-translate-y-1/2 before:border-8 before:border-y-transparent before:border-l-transparent before:border-r-gray-900
+			before:content-[''];
+	}
+}
+
+.login-page {
+	background-image: url('/img/bg-art.jpg');
+	background-size: cover;
+	background-position: center;
+	background-repeat: no-repeat;
+}
+
+@font-face {
+	font-family: Twemoji;
+	src: url('https://cdn.jsdelivr.net/npm/twemoji-colr-font@14.0.2/twemoji.woff2') format('woff2');
+}
+
+html {
+	scroll-behavior: smooth;
+}
