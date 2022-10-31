@@ -1,18 +1,62 @@
 <script lang="ts">
 	import { createEventDispatcher, onDestroy, onMount } from 'svelte';
-	import { Editor, Node } from '@tiptap/core';
-	import StarterKit from '@tiptap/starter-kit';
-	import { AddFilled } from 'carbon-icons-svelte';
-	import Placeholder from '@tiptap/extension-placeholder';
+	import AddFilled from 'carbon-icons-svelte/lib/AddFilled.svelte';
 	import _ from 'underscore';
 	import EmojiList from './EmojiList.svelte';
 	import EmojiPickerButton from './EmojiPickerButton.svelte';
-	import { EmojiExt } from '$lib/tiptap/emoji';
-	import { CustomBold } from '$lib/tiptap/bold';
-	import Bold from '@tiptap/extension-bold';
+	import { Slate, Editable, withSvelte } from 'svelte-slate';
+	import { createEditor, Node as SlateNode } from 'slate';
+	import Leaf from './slate/Leaf.svelte';
+	import { unified } from 'unified';
+	import remarkParse from 'remark-parse';
+	import { remarkToSlate, slateToRemark } from 'remark-slate-transformer';
+	import stringify from 'remark-stringify';
+	import { marked } from 'marked';
+	import { jsx } from 'slate-hyperscript';
+
+	const deserialize = (el: Node, markAttributes: any = {}) => {
+		console.log(el);
+		if (el.nodeType === Node.TEXT_NODE) {
+			return jsx('text', markAttributes, el.textContent);
+		} else if (el.nodeType !== Node.ELEMENT_NODE) {
+			return null;
+		}
+
+		const nodeAttributes = { ...markAttributes };
+
+		// define attributes for text nodes
+		switch (el.nodeName) {
+			case 'strong':
+				nodeAttributes.bold = true;
+				break;
+			case 'em':
+				nodeAttributes.italic = true;
+				break;
+		}
+
+		const children: any = Array.from(el.childNodes)
+			.map((node) => deserialize(node as any, nodeAttributes))
+			.flat();
+
+		if (children.length === 0) {
+			children.push(jsx('text', nodeAttributes, ''));
+		}
+
+		switch (el.nodeName) {
+			case 'BODY':
+				return jsx('fragment', {}, children);
+			case 'BR':
+				return '\n';
+			case 'BLOCKQUOTE':
+				return jsx('element', { type: 'quote' }, children);
+			case 'P':
+				return jsx('element', { type: 'paragraph' }, children);
+			default:
+				return children;
+		}
+	};
 
 	let element: HTMLDivElement;
-	let editor: Editor;
 
 	let emojiList: EmojiList;
 
@@ -25,77 +69,24 @@
 		};
 	}>();
 
-	const KeyMapPlugin = Node.create({
-		name: 'keymap',
-		addKeyboardShortcuts() {
-			return {
-				Enter: () => {
-					console.log('return');
-					dispatcher('submit', {
-						content: this.editor.getText(),
-					});
-					this.editor.commands.clearContent();
-					return true;
-				},
-			};
+	const editor = withSvelte(createEditor());
+	let value: any[] = [
+		{
+			type: 'paragraph',
+			children: [{ text: 'Test' }],
 		},
-	});
+	];
 
-	onMount(() => {
-		editor = new Editor({
-			element,
-			extensions: [
-				StarterKit.configure({
-					bold: false,
-				}),
-				KeyMapPlugin,
-				EmojiExt.configure({
-					suggestion: {
-						render() {
-							return {
-								onStart: ({ query }: any) => {
-									searchTerm = query;
-									isOpen = true;
-								},
-								onExit: () => {
-									isOpen = false;
-								},
-								onUpdate: ({ query }: any) => {
-									searchTerm = query;
-								},
-								onKeyDown: (props: any) => {
-									if (emojiList.handleKeyDown(props)) return true;
-									return false;
-								},
-							};
-						},
-					},
-				}),
+	const serialize = (nodes: any) => {
+		return nodes.map((n: any) => SlateNode.string(n)).join('\n');
+	};
 
-				CustomBold,
-
-				Placeholder.configure({
-					placeholder: 'Type something...',
-				}),
-			],
-
-			onTransaction: () => {
-				// Force rerender so editor.isActive works as expected
-				editor = editor;
-			},
-		});
-	});
-
-	onDestroy(() => {
-		if (editor) {
-			editor.destroy();
-		}
-	});
-
-	export let active = true;
-
-	$: if (editor) {
-		editor.setEditable(active);
+	$: {
+		const text = serialize(value);
+		const out = marked.parseInline(text);
+		const tmp = new DOMParser().parseFromString(out, 'text/html').body;
+		console.log(tmp);
+		console.log(deserialize(tmp));
 	}
 </script>
 
@@ -103,20 +94,25 @@
 	<div class="flex items-center justify-center">
 		<AddFilled class="mr-2 h-6 w-6 text-slate-400" />
 	</div>
-	<div
+	<!-- <div
 		class="scrollbar-w-1 max-h-48 flex-grow bg-slate-600 leading-8 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-thumb-rounded-md focus:border-none focus:outline-none"
 		autocorrect="false"
-		bind:this={element}
-	/>
+	/> -->
+
+	<Slate {editor} bind:value>
+		<!-- {decorate} -->
+		<Editable
+			class="flex-grow bg-slate-600 leading-8 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-thumb-rounded-md focus:border-none focus:outline-none"
+			placeholder="Type a message..."
+			{Leaf}
+			spellcheck={false}
+		/>
+	</Slate>
+
 	<EmojiList
 		bind:this={emojiList}
 		on:select={(e) => {
 			const { range, emoji } = e.detail;
-			editor.commands.deleteRange(range);
-			editor.commands.insertEmoji({
-				char: emoji.unicode,
-				name: emoji.shortcodes[0],
-			});
 			isOpen = false;
 		}}
 		open={isOpen && searchTerm.length >= 2}
@@ -131,19 +127,11 @@
 			} else {
 				name = emoji.detail.shortcodes[0];
 			}
-			editor.commands.insertEmoji({
-				char: emoji.detail.unicode,
-				name,
-			});
 		}}
 	/>
 </div>
 
 <style>
-	:global(.ProseMirror-focused) {
-		outline: none;
-	}
-
 	:global(.emoji) {
 		@apply inline-block h-8 cursor-default select-text align-bottom text-2xl leading-8;
 	}
@@ -157,13 +145,5 @@
 
 	:global(.emoji):hover > :global(.emoji-tooltip) {
 		@apply scale-100 opacity-100;
-	}
-
-	:global(.ProseMirror) :global(p.is-editor-empty:first-child::before) {
-		@apply pointer-events-none float-left h-0 text-slate-400 content-[attr(data-placeholder)];
-	}
-
-	:global(.custom-bold) > :global(span) {
-		@apply text-slate-400;
 	}
 </style>

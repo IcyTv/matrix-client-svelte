@@ -480,6 +480,7 @@
 			</InfiniteLoading>
 		</div>
 
+		<!-- TODO convert to popper -->
 		<EmojiPicker
 			on:click-outside={() => {
 				emojiPicker.classList.remove('reaction-picker-open');

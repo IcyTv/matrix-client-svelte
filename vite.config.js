@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 import { sveltekit } from '@sveltejs/kit/vite';
 import wasm from 'vite-plugin-wasm';
 import topLevelAwait from 'vite-plugin-top-level-await';
+import { viteCommonjs, esbuildCommonjs } from '@originjs/vite-plugin-commonjs';
 // import { prismjsPlugin } from 'vite-plugin-prismjs';
 
 // https://vitejs.dev/config/
@@ -10,6 +11,7 @@ export default defineConfig({
 		sveltekit(),
 		wasm(),
 		topLevelAwait(),
+		viteCommonjs(),
 		// prismjsPlugin({
 		// 	theme: 'dark',
 		// 	css: true,
@@ -29,6 +31,7 @@ export default defineConfig({
 			define: {
 				global: 'globalThis',
 			},
+			plugins: [esbuildCommonjs(['raf'])],
 		},
 	},
 	// to make use of `TAURI_DEBUG` and other env variables
