@@ -10,6 +10,9 @@
 	import { EmojiExt } from '$lib/tiptap/emoji';
 	import { CustomBold } from '$lib/tiptap/bold';
 	import Bold from '@tiptap/extension-bold';
+	import Document from '@tiptap/extension-document';
+	import Text from '@tiptap/extension-text';
+	import Prism from 'prismjs';
 
 	let element: HTMLDivElement;
 	let editor: Editor;
@@ -48,6 +51,8 @@
 				StarterKit.configure({
 					bold: false,
 				}),
+				// Document,
+				// Text,
 				KeyMapPlugin,
 				EmojiExt.configure({
 					suggestion: {
@@ -72,7 +77,7 @@
 					},
 				}),
 
-				CustomBold,
+				// CustomBold,
 
 				Placeholder.configure({
 					placeholder: 'Type something...',
@@ -80,6 +85,7 @@
 			],
 
 			onTransaction: () => {
+				Prism.highlightAll();
 				// Force rerender so editor.isActive works as expected
 				editor = editor;
 			},
@@ -104,7 +110,7 @@
 		<AddFilled class="mr-2 h-6 w-6 text-slate-400" />
 	</div>
 	<div
-		class="language-markdown max-h-48 flex-grow bg-slate-600 leading-8 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-thumb-rounded-md focus:border-none focus:outline-none"
+		class="max-h-48 flex-grow bg-slate-600 leading-8 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-thumb-rounded-md focus:border-none focus:outline-none"
 		autocorrect="false"
 		bind:this={element}
 	/>
