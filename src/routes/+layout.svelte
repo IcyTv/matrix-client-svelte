@@ -1,4 +1,8 @@
 <script lang="ts">
+	import '@fontsource/poppins';
+	import '@fontsource/roboto-mono';
+	import '@fontsource/plaster/400.css';
+
 	import { client } from '$lib/store';
 	import '../app.css';
 	import Spinner from '$lib/components/Spinner.svelte';

@@ -34,6 +34,8 @@
 	import { Gesture, Media, MediaSync, MediaVisibility, PlayButton, Poster, Video } from '@vidstack/player-svelte';
 	import InfiniteLoading from 'svelte-infinite-loading';
 	import Spinner from './Spinner.svelte';
+	import DomPurify from 'dompurify';
+	import { marked } from 'marked';
 
 	Prism.plugins.autoloader.languages_path = 'https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/';
 	Prism.manual = true;
@@ -506,7 +508,20 @@
 			on:submit={(msg) => {
 				messageInputActive = false;
 				console.log(msg.detail.content);
-				$client.sendTextMessage(room.roomId, msg.detail.content).then(() => {
+				// $client.sendTextMessage(room.roomId, msg.detail.content).then(() => {
+				// 	messageInputActive = true;
+				// 	messagesContainer.scrollTo({
+				// 		behavior: 'smooth',
+				// 		top: messagesContainer.scrollHeight,
+				// 	});
+				// });
+
+				const htmlContent = marked.parseInline(msg.detail.content);
+				console.log(htmlContent);
+				const html = DomPurify.sanitize(htmlContent);
+				console.log(html);
+				$client.sendHtmlMessage(room.roomId, msg.detail.content, html).then((res) => {
+					console.log(res);
 					messageInputActive = true;
 					messagesContainer.scrollTo({
 						behavior: 'smooth',

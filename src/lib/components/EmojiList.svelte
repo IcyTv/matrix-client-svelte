@@ -3,7 +3,7 @@
 	import emojiData from 'emojibase-data/en/compact.json';
 	import shortcodes from 'emojibase-data/en/shortcodes/emojibase.json';
 	import { createEventDispatcher } from 'svelte';
-	import type { SuggestionKeyDownProps } from '@tiptap/suggestion';
+	import type { CompactEmoji } from 'emojibase';
 
 	let clazz: string = '';
 	export { clazz as class };
@@ -41,9 +41,23 @@
 
 	$: result = fuse.search(searchTerm, { limit: 10 });
 
-	const dispatch = createEventDispatcher();
+	const dispatch = createEventDispatcher<{
+		select: {
+			emoji: {
+				shortcodes: string[];
+				skins?: CompactEmoji[] | undefined;
+				unicode: string;
+				emoticon?: string | string[] | undefined;
+				group?: number | undefined;
+				hexcode: string;
+				label: string;
+				order?: number | undefined;
+				tags?: string[] | undefined;
+			};
+		};
+	}>();
 
-	export const handleKeyDown = ({ event, range }: SuggestionKeyDownProps) => {
+	export const handleKeyDown = (event: KeyboardEvent) => {
 		if (open) {
 			if (event.key == 'ArrowDown') {
 				selected += 1;
@@ -57,7 +71,6 @@
 			} else if (event.key == 'Enter') {
 				dispatch('select', {
 					emoji: result[selected].item,
-					range,
 				});
 				selected = -1;
 				return true;

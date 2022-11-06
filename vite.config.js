@@ -3,20 +3,10 @@ import { sveltekit } from '@sveltejs/kit/vite';
 import wasm from 'vite-plugin-wasm';
 import topLevelAwait from 'vite-plugin-top-level-await';
 import { viteCommonjs, esbuildCommonjs } from '@originjs/vite-plugin-commonjs';
-// import { prismjsPlugin } from 'vite-plugin-prismjs';
 
 // https://vitejs.dev/config/
 export default defineConfig({
-	plugins: [
-		sveltekit(),
-		wasm(),
-		topLevelAwait(),
-		viteCommonjs(),
-		// prismjsPlugin({
-		// 	theme: 'dark',
-		// 	css: true,
-		// }),
-	],
+	plugins: [sveltekit(), wasm(), topLevelAwait(), viteCommonjs()],
 
 	// Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
 	// prevent vite from obscuring rust errors

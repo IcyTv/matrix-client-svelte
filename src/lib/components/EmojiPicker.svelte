@@ -16,8 +16,8 @@
 		char: string;
 		shortcode: string;
 	} = {
-		char: '',
-		shortcode: '',
+		char: '😀',
+		shortcode: 'grinning',
 	};
 
 	const onEmojiHover = (emoji: CompactEmoji) => () => {
