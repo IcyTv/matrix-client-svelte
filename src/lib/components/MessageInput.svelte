@@ -108,7 +108,6 @@
 			sanitize: true,
 			smartypants: true,
 			highlight: (code, lang, cb) => {
-				console.log('Code', code, lang, cb);
 				return code;
 			},
 		});
@@ -176,16 +175,6 @@
 			});
 		}
 
-		(window as any).printMessageInputRanges = () => {
-			ranges.forEach((range) => {
-				console.log(range.anchor.offset, range.focus.offset, range);
-			});
-		};
-
-		(window as any).printMessageInputTokens = () => {
-			console.log(tokens);
-		};
-
 		return ranges as never[];
 	};
 
@@ -232,7 +221,6 @@
 		if (ev.key === 'Enter' && !ev.shiftKey) {
 			ev.preventDefault();
 			const text = value.map((n) => Node.string(n)).join('\n');
-			console.log('Would send', text);
 
 			if (text.length > 0) {
 				value = [{ type: 'paragraph', children: [{ text: '' }] }];

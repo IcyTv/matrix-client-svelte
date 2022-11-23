@@ -24,8 +24,6 @@
 	export let ref: HTMLElement | undefined = undefined;
 	export let dir: 'rtl' | 'ltr' | undefined = undefined;
 
-	$: console.log(element);
-
 	let Element: any = DefaultElement;
 	if (element.type === 'emoji') {
 		Element = EmojiElement;

@@ -16,7 +16,7 @@
 	import FaceAdd from 'carbon-icons-svelte/lib/FaceAdd.svelte';
 	import ColorHash from 'color-hash';
 	import EMOJI_REGEX from 'emojibase-regex/emoji';
-	import { EventType, type IEventWithRoomId, type MatrixEvent, type Room } from 'matrix-js-sdk';
+	import { Direction, EventTimeline, EventType, type IEventWithRoomId, type MatrixEvent, type Room } from 'matrix-js-sdk';
 	import Prism from 'prismjs';
 	import 'prismjs/plugins/autoloader/prism-autoloader';
 	import { afterUpdate, onDestroy, onMount } from 'svelte';
@@ -36,12 +36,16 @@
 	import Spinner from './Spinner.svelte';
 	import DomPurify from 'dompurify';
 	import { marked } from 'marked';
+	import { logDir } from '@tauri-apps/api/path';
+	import WebRtcCallButton from './WebRTCCallButton.svelte';
 
 	Prism.plugins.autoloader.languages_path = 'https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/';
 	Prism.manual = true;
 
 	export let room: Room;
 	export let parentImage: string;
+
+	$: console.log('Component', room.roomId);
 
 	const ONLY_EMOJI_REGEX = new RegExp(`^(${EMOJI_REGEX.source})+$`);
 
@@ -56,7 +60,7 @@
 	}
 
 	interface MessageEvent {
-		event: IEventWithRoomId;
+		event: MatrixEvent;
 		date: Date;
 		realTime: string;
 		body: MessageBody;
@@ -97,7 +101,7 @@
 		}
 	};
 
-	let messages: IEventWithRoomId[] = [];
+	let messages: MatrixEvent[] = [];
 
 	$: topic = room.currentState.getStateEvents('m.room.topic', '')?.getContent()?.topic;
 	$: isEncrypted = $client.isRoomEncrypted(room.roomId);
@@ -112,10 +116,17 @@
 		}
 	};
 
+	// $: messages = messages.sort((a, b) => a.getTs() - b.getTs());
+	// $: console.log(messages);
+
 	$: messagesGrouped = messages
-		.filter((event) => event.type === EventType.RoomMessage)
+		.sort((a, b) => a.getTs() - b.getTs())
+		// .filter((event) => event.getType() === EventType.RoomMessage)
+		.filter((e) => {
+			return e.getType() === EventType.RoomMessage;
+		})
 		.map((e) => {
-			const eventTime = e.origin_server_ts;
+			const eventTime = e.getTs();
 
 			// if (e.content.url) {
 			// 	console.log(e);
@@ -126,24 +137,32 @@
 				date: new Date(eventTime),
 				realTime: timeFormatter.format(eventTime),
 				body: {
-					text: e.content['m.new_content']?.formatted_body ?? e.content.formatted_body ?? e.content.body,
-					image: optionalMcxToHttp(e.content.info?.thumbnail_url ?? e.content.url),
-					video: optionalMcxToHttp(e.content.url),
-					mimeType: e.content.info?.mimetype ?? 'text/plain',
+					// text: e.content['m.new_content']?.formatted_body ?? e.content.formatted_body ?? e.content.body,
+					text: e.getContent().body,
+					// image: optionalMcxToHttp(e.content.info?.thumbnail_url ?? e.content.url),
+					image: optionalMcxToHttp(e.getContent().url),
+					// video: optionalMcxToHttp(e.content.url),
+					video: optionalMcxToHttp(e.getContent().url),
+					// mimeType: e.content.info?.mimetype ?? 'text/plain',
+					mimeType: e.getContent().info?.mimetype ?? 'text/plain',
 				},
 			} as MessageEvent;
 		})
 		.reduce<MessageEventGroup[]>((acc, val) => {
 			const prevSeq = acc[acc.length - 1];
-			if (!prevSeq || prevSeq.sender !== val.event.sender || val.date.getTime() - prevSeq.date.getTime() > MAX_TIMESTAMP_DIFF) {
+			// if (!prevSeq || prevSeq.sender !== val.event.sender || val.date.getTime() - prevSeq.date.getTime() > MAX_TIMESTAMP_DIFF) {
+			if (!prevSeq || prevSeq.sender !== val.event.getSender() || val.date.getTime() - prevSeq.date.getTime() > MAX_TIMESTAMP_DIFF) {
 				const time = new RelativeTime();
-				const sender = $client.getUser(val.event.sender);
-				const senderColor = colorHash.hex(val.event.sender);
+				// const sender = $client.getUser(val.event.sender);
+				const sender = $client.getUser(val.event.getSender());
+				// const senderColor = colorHash.hex(val.event.sender);
+				const senderColor = colorHash.hex(val.event.getSender());
 				acc.push({
 					humanTime: time.from(val.date),
 					date: val.date,
 					events: [val],
-					sender: val.event.sender,
+					// sender: val.event.sender,
+					sender: val.event.getSender(),
 					senderAvatar: $client.mxcUrlToHttp(sender?.avatarUrl!, 32, 32, 'scale', false) as string | undefined,
 					senderName: sender?.displayName as string | undefined,
 					senderColor,
@@ -154,6 +173,8 @@
 
 			return acc;
 		}, []);
+
+	// $: console.log(messagesGrouped);
 
 	let reactions: {
 		[eventId: string]: {
@@ -167,12 +188,15 @@
 	$: {
 		const groupedReactions = _.groupBy(
 			messages
-				.filter((m) => m.type === EventType.Reaction)
-				.filter((m) => m.content['m.relates_to'] && m.content['m.relates_to'].rel_type === 'm.annotation')
+				.filter((m) => m.getType() === EventType.Reaction)
+				// .filter((m) => m.content['m.relates_to'] && m.content['m.relates_to'].rel_type === 'm.annotation')
+				.filter((m) => m.getContent()['m.relates_to'] && m.getContent()['m.relates_to']?.rel_type === 'm.annotation')
 				.map((m) => {
-					const event = m.content['m.relates_to']?.event_id;
-					const reaction = m.content['m.relates_to']?.key;
-					const sender = m.sender;
+					// const event = m.content['m.relates_to']?.event_id;
+					const event = m.getContent()['m.relates_to']?.event_id;
+					// const reaction = m.content['m.relates_to']?.key;
+					const reaction = m.getContent()['m.relates_to']?.key;
+					const sender = m.getSender();
 					return { event, reaction, sender };
 				}),
 			'event'
@@ -202,20 +226,26 @@
 		if (event.getType() === EventType.RoomMessage) {
 			if (event.isRelation('m.replace')) {
 				const eventId = event.getRelation()!.event_id;
-				const index = messages.findIndex((m) => m.event_id === eventId);
+				const index = messages.findIndex((m) => m.getId() === eventId);
 				if (index !== -1) {
-					messages[index] = event.event as IEventWithRoomId;
+					messages[index] = event;
 				}
 			} else {
-				messages.push(event.event as IEventWithRoomId);
+				// messages.push(event.event as IEventWithRoomId);
+				messages.push(event);
 			}
 
 			messages = messages;
 		} else if (event.getType() === EventType.Reaction) {
-			messages.push(event.event as IEventWithRoomId);
+			// messages.push(event.event as IEventWithRoomId);
+			messages.push(event);
 			messages = messages;
 		} else {
-			console.log('Ignoring event', event);
+			if (event.getType().startsWith('m.call')) {
+				// Ignore for now
+				return;
+			}
+			console.log('Ignoring event', event.getType(), event);
 		}
 	};
 
@@ -224,22 +254,23 @@
 	onMount(() => {
 		$client.on('Room.timeline' as any, onMessage);
 
-		$client.roomInitialSync(room.roomId, 50).then((initialSync) => {
-			messages = initialSync.messages!.chunk;
-			Prism.highlightAll();
-			setTimeout(() => {
-				if (messagesContainer) {
-					messagesContainer.scrollTop = messagesContainer.scrollHeight;
-				}
-			}, 0);
-		});
+		console.log('OnRoomMount', room.roomId);
+
+		// $client.roomInitialSync(room.roomId, 50).then((initialSync) => {
+		// 	messages = initialSync.messages!.chunk;
+		// 	Prism.highlightAll();
+		// 	setTimeout(() => {
+		// 		if (messagesContainer) {
+		// 			messagesContainer.scrollTop = messagesContainer.scrollHeight;
+		// 		}
+		// 	}, 0);
+		// });
 	});
 
 	onDestroy(() => {
 		$client.off('Room.timeline' as any, onMessage);
+		console.log('OnRoomDestroy', room.roomId);
 	});
-
-	$: console.log(messages.filter((m) => m.content['m_relates_to']));
 
 	let emojiPicker: HTMLDivElement;
 
@@ -248,10 +279,6 @@
 	});
 
 	const modal = writable(null);
-	// const userProfileModal = writable<{
-	// 	component: SvelteComponent;
-	// 	style: Record<string, string>;
-	// } | null>(null);
 
 	const [userProfileRef, userProfileContent] = createPopperActions({
 		placement: 'right-start',
@@ -292,7 +319,9 @@
 			<p class="flex-1 overflow-hidden overflow-ellipsis whitespace-nowrap pr-4 text-sm text-gray-400">{topic}</p>
 		{/if}
 
-		<ThreadIcon class="ml-auto mr-1 h-5 w-5 flex-shrink-0 text-gray-400" />
+		<WebRtcCallButton {room} class="ml-auto mr-1 h-5 w-5 flex-shrink-0 text-gray-400" />
+
+		<ThreadIcon class="mx-1 h-5 w-5 flex-shrink-0 text-gray-400" />
 		<NotificationFilled class="mx-1 h-5 w-5 flex-shrink-0 text-gray-400" />
 		<PinFilled class="mx-1 h-5 w-5 flex-shrink-0 text-gray-400" />
 		<UserMultiple class="mx-1 h-5 w-5 flex-shrink-0 text-gray-400" />
@@ -307,8 +336,52 @@
 	</div>
 
 	<div class="relative flex max-h-[calc(100%-40px)] max-w-full flex-grow flex-col">
-		<div bind:this={messagesContainer} class="flex max-h-full flex-grow flex-col-reverse scrollbar-thin scrollbar-thumb-slate-900 scrollbar-thumb-rounded-md">
-			{#each messagesGrouped.reverse() as eventGroup, groupIndex}
+		<div bind:this={messagesContainer} class="flex max-h-full flex-grow flex-col scrollbar-thin scrollbar-thumb-slate-900 scrollbar-thumb-rounded-md" data-infinite-wrapper>
+			<InfiniteLoading
+				on:infinite={async (event) => {
+					try {
+						const liveTimeline = room.getLiveTimeline();
+
+						if (!liveTimeline) {
+							console.log('No timeline found');
+							event.detail.loaded();
+							return;
+						}
+
+						const isNotDone = await $client.paginateEventTimeline(liveTimeline, { backwards: true, limit: 50 });
+
+						messages = liveTimeline.getEvents().map((event) => event);
+
+						//TODO figure out better scroll behavior
+
+						event.detail.loaded();
+
+						if (!isNotDone) {
+							event.detail.complete();
+						}
+					} catch (err) {
+						console.error('Error while paginating', err);
+						event.detail.error();
+					}
+				}}
+				direction="top"
+				forceUseInfiniteWrapper
+			>
+				<div slot="spinner" class="m-4 flex justify-center">
+					<Spinner />
+				</div>
+
+				<div slot="noResults">No results</div>
+				<div slot="noMore">All done :)</div>
+			</InfiniteLoading>
+			{#each messagesGrouped as eventGroup, groupIndex}
+				{#if groupIndex === messagesGrouped.length - 1 || eventGroup.date.getDate() != messagesGrouped[groupIndex + 1].date.getDate()}
+					<div class="my-2 flex w-full flex-row items-center justify-center px-2 py-1 text-sm font-bold text-gray-400">
+						<div class="mx-2 h-px flex-grow bg-gray-600" />
+						<p class="w-fit">{formatDate(eventGroup.date)}</p>
+						<div class="mx-2 h-px flex-grow bg-gray-600" />
+					</div>
+				{/if}
 				<div class="flex w-full flex-col">
 					{#each eventGroup.events as event, i}
 						<div class="message-group group relative hover:bg-slate-800">
@@ -428,7 +501,7 @@
 										emojiPicker.style.left = `${rect.x}px`;
 										emojiPicker.style.top = `${rect.y}px`;
 										emojiPicker.classList.add('reaction-picker-open');
-										emojiPicker.dataset.eventId = event.event.event_id;
+										emojiPicker.dataset.eventId = event.event.getId();
 
 										const parent = e.currentTarget.parentElement?.parentElement;
 										parent?.classList.add('message-group-active');
@@ -441,11 +514,11 @@
 								<OverflowMenuHorizontal class="message-action-button" />
 							</div>
 
-							{#if reactions[event.event.event_id]}
+							{#if reactions[event.event.getId()]}
 								<!-- This div fills the grid -->
 								<div />
 								<div class="group">
-									{#each Object.entries(reactions[event.event.event_id]) as [emoji, reaction]}
+									{#each Object.entries(reactions[event.event.getId()]) as [emoji, reaction]}
 										<div
 											class="mr-1 mb-1 inline-flex cursor-pointer select-none flex-row items-center justify-center gap-2 rounded bg-slate-600 px-2 py-[2px] hover:ring-1 hover:ring-blue-400
 											{reaction.selfHasReacted ? 'bg-blue-900 ring-1 ring-blue-700' : ''}"
@@ -461,25 +534,7 @@
 						</div>
 					{/each}
 				</div>
-
-				{#if groupIndex === messagesGrouped.length - 1 || eventGroup.date.getDate() != messagesGrouped[groupIndex + 1].date.getDate()}
-					<div class="my-2 flex w-full flex-row items-center justify-center px-2 py-1 text-sm font-bold text-gray-400">
-						<div class="mx-2 h-px flex-grow bg-gray-600" />
-						<p class="w-fit">{formatDate(eventGroup.date)}</p>
-						<div class="mx-2 h-px flex-grow bg-gray-600" />
-					</div>
-				{/if}
 			{/each}
-			<InfiniteLoading
-				on:infinite={async (event) => {
-					if (messagesGrouped.length === 0) return;
-					let lastEvent = messagesGrouped[messagesGrouped.length - 1].events[messagesGrouped[messagesGrouped.length - 1].events.length - 1];
-				}}
-			>
-				<div slot="spinner" class="m-4 flex justify-center">
-					<Spinner />
-				</div>
-			</InfiniteLoading>
 		</div>
 
 		<!-- TODO convert to popper -->
@@ -507,19 +562,9 @@
 		<MessageInput
 			on:submit={(msg) => {
 				messageInputActive = false;
-				console.log(msg.detail.content);
-				// $client.sendTextMessage(room.roomId, msg.detail.content).then(() => {
-				// 	messageInputActive = true;
-				// 	messagesContainer.scrollTo({
-				// 		behavior: 'smooth',
-				// 		top: messagesContainer.scrollHeight,
-				// 	});
-				// });
 
 				const htmlContent = marked.parseInline(msg.detail.content);
-				console.log(htmlContent);
 				const html = DomPurify.sanitize(htmlContent);
-				console.log(html);
 				$client.sendHtmlMessage(room.roomId, msg.detail.content, html).then((res) => {
 					console.log(res);
 					messageInputActive = true;
@@ -558,6 +603,7 @@
 	.message-group {
 		@apply grid pr-8;
 		grid-template-columns: 5rem 1fr;
+		overflow-anchor: none;
 	}
 
 	.message-content :global(pre) {
