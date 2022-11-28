@@ -60,7 +60,9 @@
 				"resizable": true,
 				"title": "Matrix Client",
 				"width": 1280,
-				"decorations": false
+				"decorations": false,
+				"minHeight": 400,
+				"minWidth": 600
 			}
 		]
 	}

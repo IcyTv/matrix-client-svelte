@@ -1,8 +1,14 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { client, voiceCallSettings } from '$lib/store';
+	import { client, jitsiConnection, voiceCallSettings } from '$lib/store';
 	import { JOIN_ROOM_AUDIO_SRC as UNMUTE_AUDIO_SRC, LEAVE_ROOM_AUDIO_SRC as MUTE_AUDIO_SRC, playAudio } from '$lib/utils/audio';
-	import { Headphones, MicrophoneFilled, User, Settings, Wifi, PhoneBlockFilled } from 'carbon-icons-svelte';
+	import Headphones from 'carbon-icons-svelte/lib/Headphones.svelte';
+	import MicrophoneFilled from 'carbon-icons-svelte/lib/MicrophoneFilled.svelte';
+	import User from 'carbon-icons-svelte/lib/User.svelte';
+	import Settings from 'carbon-icons-svelte/lib/Settings.svelte';
+	import Wifi from 'carbon-icons-svelte/lib/Wifi.svelte';
+	import PhoneBlockFilled from 'carbon-icons-svelte/lib/PhoneBlockFilled.svelte';
+
 	import { createEventDispatcher } from 'svelte';
 	import { slide } from 'svelte/transition';
 
@@ -82,7 +88,6 @@
 					playAudio(MUTE_AUDIO_SRC);
 				}
 				$voiceCallSettings.muted = !$voiceCallSettings.muted;
-				console.log($voiceCallSettings);
 			}}
 		>
 			<MicrophoneFilled class="h-4 w-4 " />
@@ -97,14 +102,13 @@
 					playAudio(MUTE_AUDIO_SRC);
 				}
 				$voiceCallSettings.deafened = !$voiceCallSettings.deafened;
-				console.log($voiceCallSettings);
 			}}
 		>
 			<Headphones class="h-4 w-4" />
 		</button>
 
-		<button class="ml-auto flex h-8 w-8 items-center justify-center rounded p-2 hover:bg-slate-700">
+		<a href="/settings" class="ml-auto flex h-8 w-8 items-center justify-center rounded p-2 hover:bg-slate-700">
 			<Settings class="h-4 w-4" />
-		</button>
+		</a>
 	</div>
 </div>

@@ -36,7 +36,6 @@
 	import Spinner from './Spinner.svelte';
 	import DomPurify from 'dompurify';
 	import { marked } from 'marked';
-	import { logDir } from '@tauri-apps/api/path';
 	import WebRtcCallButton from './WebRTCCallButton.svelte';
 
 	Prism.plugins.autoloader.languages_path = 'https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/';
@@ -44,8 +43,6 @@
 
 	export let room: Room;
 	export let parentImage: string;
-
-	$: console.log('Component', room.roomId);
 
 	const ONLY_EMOJI_REGEX = new RegExp(`^(${EMOJI_REGEX.source})+$`);
 

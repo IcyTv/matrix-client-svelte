@@ -5,13 +5,15 @@
 
 	import { client } from '$lib/store';
 	import '../app.css';
-	import Spinner from '$lib/components/Spinner.svelte';
 	import { goto } from '$app/navigation';
-	import { navigating } from '$app/stores';
 	import { appWindow } from '@tauri-apps/api/window';
 
 	import { logger } from 'matrix-js-sdk/lib/logger';
-	import { Close, CollapseAll, Copy, ExpandAll, Scale, SquareFill, Stop, Subtract } from 'carbon-icons-svelte';
+	import Close from 'carbon-icons-svelte/lib/Close.svelte';
+	import Copy from 'carbon-icons-svelte/lib/Copy.svelte';
+	import Stop from 'carbon-icons-svelte/lib/Stop.svelte';
+	import Subtract from 'carbon-icons-svelte/lib/Subtract.svelte';
+
 	import Notifications from 'svelte-notifications';
 	//@ts-ignore
 	import { createBoundary } from '@crownframework/svelte-error-boundary';

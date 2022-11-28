@@ -65,6 +65,7 @@
 		"tailwind-scrollbar": "^2.0.1",
 		"underscore": "^1.13.6",
 		"unified": "^10.1.2",
+		"uuid": "^9.0.0",
 		"vite-plugin-prismjs": "^0.0.8"
 	},
 	"devDependencies": {
@@ -79,6 +80,7 @@
 		"@types/prismjs": "^1.26.0",
 		"@types/slate": "^0.47.11",
 		"@types/underscore": "^1.11.4",
+		"@types/uuid": "^8.3.4",
 		"@types/yaireo__relative-time": "^1.0.0",
 		"autoprefixer": "^10.4.12",
 		"patch-package": "^6.5.0",

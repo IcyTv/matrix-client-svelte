@@ -6,23 +6,29 @@
 	import ServerHeader from '$lib/components/ServerHeader.svelte';
 	import { RoomState, RoomStateEvent, type MatrixEvent, type Room } from 'matrix-js-sdk';
 	import Hashtag from 'carbon-icons-svelte/lib/Hashtag.svelte';
+	import User from 'carbon-icons-svelte/lib/User.svelte';
+	import VolumeUpFilled from 'carbon-icons-svelte/lib/VolumeUpFilled.svelte';
 	import UserSummary from '$lib/components/UserSummary.svelte';
-	import { User, VolumeUpFilled } from 'carbon-icons-svelte';
+	// import { User, VolumeUpFilled } from 'carbon-icons-svelte';
 
 	import { slide, fade } from 'svelte/transition';
 	import { getUsersInCall } from '$lib/utils/call';
 	import { onDestroy, onMount } from 'svelte';
 
 	import JitsiConference from '$lib/components/JitsiConference.svelte';
+	import { flip } from 'svelte/animate';
+	import _ from 'underscore';
+	import { list } from 'postcss';
 
 	let roomId: string;
 	$: roomId = $page.params.room;
 	$: room = $client?.getRoom(roomId);
-	$: children = Promise.all(
-		room?.currentState.getStateEvents('m.space.child')?.map((event) => {
+	$: children = room?.currentState
+		.getStateEvents('m.space.child')
+		?.map((event) => {
 			return $client?.getRoom(event.getStateKey());
-		}) || []
-	).then((rooms) => rooms.filter((room) => !!room)) as Promise<Room[]>;
+		})
+		.filter((room) => !!room) as Room[] | undefined;
 
 	$: currentlySelected = $page.params.channel;
 	$: userProfile = $client?.getUser($client.getUserId()!);
@@ -40,7 +46,6 @@
 	const onChannelClick = (room: Room) => (e: MouseEvent) => {
 		if (room.isElementVideoRoom()) {
 			if ($voiceCallSettings.firstClick) {
-				console.log('Preventing first click');
 				e.preventDefault();
 			}
 			$voiceCallSettings.firstClick = false;
@@ -65,33 +70,21 @@
 			}
 		}
 
-		console.log('Updated members', roomMembers);
+		roomMembers[room.roomId].sort((a, b) => a.displayName.localeCompare(b.displayName));
 	};
 
-	onMount(() => {
-		children.then((children) => {
-			for (const child of children) {
-				if (child.isElementVideoRoom()) {
-					child.on(RoomStateEvent.Update, onStateUpdated(child));
-				}
-
-				onStateUpdated(child)(child.currentState);
+	$: if (children) {
+		for (const child of children) {
+			child.off(RoomStateEvent.Update, onStateUpdated(child));
+			if (child.isElementVideoRoom()) {
+				child.on(RoomStateEvent.Update, onStateUpdated(child));
 			}
-		});
-	});
 
-	onDestroy(() => {
-		children.then((children) => {
-			for (const child of children) {
-				if (child.isElementVideoRoom()) {
-					child.off(RoomStateEvent.Update, onStateUpdated(child));
-				}
-			}
-		});
-	});
+			onStateUpdated(child)(child.currentState);
+		}
+	}
 
 	$: currentVoiceRoom = $voiceCallSettings.room && $client?.getRoom($voiceCallSettings.room);
-	$: console.log('Got Current Voice Room', currentVoiceRoom, 'Is current?', $voiceCallSettings.room === currentlySelected, $voiceCallSettings.room, currentlySelected);
 </script>
 
 <svelte:head>
@@ -109,44 +102,44 @@
 		<div class="relative z-10 flex h-full w-64 flex-shrink-0 select-none flex-col bg-slate-800 shadow-lg shadow-black">
 			<ServerHeader bind:room class="mb-4" />
 
-			{#await children}
+			<!-- {#await children}
 				<div class="h-8 rounded mx-2 mb-2 bg-slate-600 animate-pulse" />
 				<div class="h-8 rounded mx-2 mb-2 bg-slate-600 animate-pulse" />
 				<div class="h-8 rounded mx-2 mb-2 bg-slate-600 animate-pulse" />
 				<div class="h-8 rounded mx-2 mb-2 bg-slate-600 animate-pulse" />
-			{:then c}
-				{#each c.filter((c) => !c.isSpaceRoom()) as child}
-					<div class="flex flex-col">
-						<a
-							class="flex flex-row items-center mx-2 mb-1 rounded shadow-slate-800 transition-all duration-75 cursor-pointer hover:bg-slate-700 hover:shadow 
+			{:then c} -->
+			{#each children?.filter((c) => !c.isSpaceRoom()) ?? [] as child}
+				<div class="flex flex-col">
+					<a
+						class="mx-2 mb-1 flex cursor-pointer flex-row items-center rounded shadow-slate-800 transition-all duration-75 hover:bg-slate-700 hover:shadow 
 							{currentlySelected == child.roomId ? 'bg-slate-700' : ''}"
-							href={`/rooms/${roomId}/${child.roomId}`}
-							on:click={onChannelClick(child)}
-						>
-							{#if child.isCallRoom() || child.isElementVideoRoom()}
-								<VolumeUpFilled class="w-8 h-8 p-2" />
-							{:else}
-								<Hashtag class="w-8 h-8 p-2" />
-							{/if}
-							<p>{child.name}</p>
-						</a>
+						href={`/rooms/${roomId}/${child.roomId}`}
+						on:click={onChannelClick(child)}
+					>
+						{#if child.isCallRoom() || child.isElementVideoRoom()}
+							<VolumeUpFilled class="h-8 w-8 p-2" />
+						{:else}
+							<Hashtag class="h-8 w-8 p-2" />
+						{/if}
+						<p>{child.name}</p>
+					</a>
 
-						{#each (roomMembers[child.roomId] ?? []).sort((a, b) => a.displayName.localeCompare(b.displayName)) as member}
-							<div class="flex flex-row items-center ml-10 hover:bg-slate-600 p-1 rounded mr-2 cursor-pointer" transition:slide={{ duration: 150 }}>
-								<div class="relative h-6 w-6 rounded-full">
-									{#if member.avatarUrl}
-										<img src={member.avatarUrl} class="h-6 w-6 rounded-full object-cover" alt="Profile" />
-									{:else}
-										<User class="h-6 w-6 rounded-full" />
-									{/if}
-								</div>
-
-								<p class="mx-2 text-sm text-slate-300">{member.displayName}</p>
+					{#each roomMembers[child.roomId] as member, key (member.id)}
+						<div class="ml-10 mr-2 flex cursor-pointer flex-row items-center rounded p-1 hover:bg-slate-600" in:slide={{ duration: 150 }} animate:flip>
+							<div class="relative h-6 w-6 rounded-full">
+								{#if member.avatarUrl}
+									<img src={member.avatarUrl} class="h-6 w-6 rounded-full object-cover" alt="Profile" />
+								{:else}
+									<User class="h-6 w-6 rounded-full" />
+								{/if}
 							</div>
-						{/each}
-					</div>
-				{/each}
-			{/await}
+
+							<p class="mx-2 text-sm text-slate-300">{member.displayName}</p>
+						</div>
+					{/each}
+				</div>
+			{/each}
+			<!-- {/await} -->
 
 			<UserSummary
 				on:disconnect={() => {

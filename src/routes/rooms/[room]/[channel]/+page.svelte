@@ -7,8 +7,6 @@
 	$: roomId = $page.params.channel;
 	$: parentRoomId = $page.params.room;
 
-	$: console.log('+page', roomId, parentRoomId);
-
 	$: room = $client.getRoom(roomId);
 
 	$: parentRoomImage = $client.getRoom(parentRoomId)?.getAvatarUrl($client.baseUrl, 32, 32, 'crop');

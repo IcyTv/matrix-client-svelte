@@ -1,12 +1,3 @@
-import JitsiMeetJS from '@solyd/lib-jitsi-meet';
-// import {
-// 	VideoConferenceCapabilities,
-// 	WidgetApi,
-// 	type IOpenIDCredentials,
-// 	type IWidgetApiRequest,
-// 	type IWidgetApiRequestData,
-// 	type IWidgetApiResponseData,
-// } from 'matrix-widget-api';
 import type { WidgetApiAction } from 'matrix-widget-api';
 import { any } from 'underscore';
 import type { Room } from 'matrix-js-sdk';

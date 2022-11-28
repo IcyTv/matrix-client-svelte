@@ -69,3 +69,29 @@
 		// 		enabled: true,
 		// 	});
 		// });
+
+
+
+		
+		// const response = await $client.sendStateEvent(
+		// 	room.roomId,
+		// 	'io.element.video.member',
+		// 	{
+		// 		devices: [$client.deviceId],
+		// 		expires_ts: Date.now() + 1000 * 60 * 60,
+		// 	},
+		// 	ownEvent.getStateKey()
+		// );
+
+
+
+
+		// const response = await $client.sendStateEvent(
+		// 	room.roomId,
+		// 	'io.element.video.member',
+		// 	{
+		// 		devices: [],
+		// 		expires_ts: Date.now() + 1000 * 60 * 60,
+		// 	},
+		// 	ownEvent.getStateKey()
+		// );

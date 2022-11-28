@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { client, voiceCallSettings } from '$lib/store';
 	import { JOIN_ROOM_AUDIO_SRC, playAudio } from '$lib/utils/audio';
-	import { PhoneBlockFilled, PhoneFilled } from 'carbon-icons-svelte';
+	import PhoneFilled from 'carbon-icons-svelte/lib/PhoneFilled.svelte';
 	import type { Room } from 'matrix-js-sdk';
 	import { CallErrorCode, CallEvent } from 'matrix-js-sdk/lib/webrtc/call';
 	import { CallEventHandlerEvent } from 'matrix-js-sdk/lib/webrtc/callEventHandler';
@@ -16,8 +16,6 @@
 
 	$: call = $client.createCall(room.roomId);
 
-	$: console.log(call);
-
 	const onError = (error: Error) => {
 		console.error(error);
 		addNotification({
@@ -28,7 +26,6 @@
 	};
 
 	const onCallEvent = (event: any) => {
-		console.log(event);
 		addNotification({
 			type: 'info',
 			title: 'Call event',

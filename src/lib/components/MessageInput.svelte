@@ -13,7 +13,6 @@
 	import { marked } from 'marked';
 	import { EmojiEditor, withEmoji } from './slate/withEmoji';
 	import SendButton from './SendButton.svelte';
-	import { event } from '@tauri-apps/api';
 	import { withCode } from 'svelte-slate/plugins/CodeElement.svelte';
 
 	let element: HTMLDivElement;

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { client } from '$lib/store';
-	import { UserAvatar } from 'carbon-icons-svelte';
+	import UserAvatar from 'carbon-icons-svelte/lib/UserAvatar.svelte';
 	import ColorHash from 'color-hash';
 	import type { Room } from 'matrix-js-sdk';
 

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Room } from 'matrix-js-sdk';
-	import { ChevronDown } from 'carbon-icons-svelte';
+	import ChevronDown from 'carbon-icons-svelte/lib/ChevronDown.svelte';
 
 	export let room: Room;
 

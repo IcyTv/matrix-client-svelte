@@ -39,137 +39,84 @@
 
 <script lang="ts">
 	import type { Room } from 'matrix-js-sdk';
-	import { base32 } from 'rfc4648';
 	import { createEventDispatcher, onDestroy, onMount } from 'svelte';
-	import { Buffer } from 'buffer';
-	import { client, voiceCallSettings } from '$lib/store';
+	import { client, voiceCallSettings, jitsiConnection } from '$lib/store';
+	import { createConnectionStore, DEFAULT_JITSI_CONFIG } from '$lib/jitsi/connectionStore';
+	import Conference from '$lib/jitsi/components/Conference.svelte';
+	import { localTracksStore } from '$lib/jitsi/localTrackStores';
+	import type TrackVADEmitter from '@solyd/lib-jitsi-meet/dist/esm/modules/detection/TrackVADEmitter';
+	import _ from 'underscore';
 
 	export let room: Room;
 	export let hidden: boolean = false;
 
-	$: conferenceId = base32.stringify(Buffer.from(room.roomId), { pad: false });
 	$: displayName = $client?.getUser($client.getUserId()!)?.displayName;
 	$: email = $client?.getUserId()!;
 
-	let jitsiParentNode: HTMLElement | null = null;
+	let deafened = false;
 
 	$: accessToken = $client?.getAccessToken();
 	$: serverName = $client?.getDomain();
 	$: avatarUrlMxc = $client?.getUser($client.getUserId()!)?.avatarUrl;
 	$: avatarUrl = $client?.mxcUrlToHttp(avatarUrlMxc!);
 
-	let meetApi: any;
-
 	const dispatch = createEventDispatcher<JitsiEvents>();
 
-	console.log('Room events', room.currentState.events);
-
 	$: widgetEvent = room.currentState.getStateEvents('im.vector.modular.widgets');
-	$: console.log('Widget event', widgetEvent[0].getContent());
 	$: widgetData = widgetEvent[0].getContent();
 	$: console.assert(widgetData.type === 'jitsi', 'Widget type is not jitsi');
+	$: conferenceId = widgetData.data.conferenceId;
+	$: jitsiConferenceId = conferenceId.toLowerCase();
+
+	$: console.log('Conference ID', conferenceId);
 
 	$: ownEvent = room.currentState.getStateEvents('io.element.video.member', $client.getUserId()!);
+	$: currentDeviceList = ownEvent?.getContent().devices ?? [];
+
+	// const connection = createConnectionStore(DEFAULT_JITSI_CONFIG, jitsiConferenceId);
+	$: conferences = jitsiConnection.conferences;
+
+	$: currentConference = $conferences[jitsiConferenceId];
+	$: localParticipant = currentConference?.localParticipant;
+	$: participants = currentConference?.participants;
+
+	$: if ($currentConference) {
+		$currentConference.setDisplayName(displayName!);
+		$currentConference.sendCommandOnce('avatar-url', {
+			value: avatarUrl,
+			attributes: {},
+			children: [],
+		});
+	}
 
 	onMount(async () => {
-		const jwt = createJwtToken(room.roomId, accessToken!, serverName, displayName!, avatarUrl!);
-		const options = {
-			width: '100%',
-			height: '100%',
-			parentNode: jitsiParentNode,
-			devices: {
-				// audioInput: null,
-				// videoInput: null,
-			},
-			userInfo: {
-				displayName,
-				email,
-			},
-			roomName: widgetData.data.conferenceId,
-			interfaceConfigOverwrite: {
-				SHOW_JITSI_WATERMARK: false,
-				SHOW_WATERMARK_FOR_GUESTS: false,
-				MAIN_TOOLBAR_BUTTONS: [],
-				VIDEO_LAYOUT_FIT: 'height',
-				TILE_VIEW_MAX_COLUMNS: 5,
-			},
-			configOverwrite: {
-				subject: room.name,
-				startWithAudioMuted: $voiceCallSettings.muted,
-				startWithVideoMuted: true,
-				apiLogLevels: ['error'],
-				prejoinConfig: {
-					enabled: false,
-				},
-				toolbarButtons: ['microphone', 'camera', 'titleview', 'hangup', 'desktop'],
-				conferenceInfo: {
-					autoHide: [],
-				},
-				disableSelfViewSettings: true,
-				disableTileView: false,
-				enableWelcomePage: false,
-				disableAudioLevels: false,
-				logging: {
-					logLevel: 'error',
-				},
-			},
-			jwt,
-		};
-		console.log('Mounting JitsiConference', jitsiParentNode);
-		meetApi = new JitsiMeetExternalAPI(JITSI_DOMAIN, options);
+		conferences.join(jitsiConferenceId);
+		if (!$localTracksStore?.audio) {
+			localTracksStore.request({
+				requestedTracks: ['audio'],
+				selectedDevices: {},
+			});
+		}
 
+		const newDevices = currentDeviceList.concat([$client.getDeviceId()]);
 		const response = await $client.sendStateEvent(
 			room.roomId,
 			'io.element.video.member',
 			{
-				devices: [$client.deviceId],
+				devices: newDevices,
 				expires_ts: Date.now() + 1000 * 60 * 60,
 			},
 			ownEvent.getStateKey()
 		);
-
-		console.log('Response', response);
-
-		dispatch('connect');
-
-		meetApi.addEventListener('readyToClose', async () => {
-			console.log('JitsiConference: readyToClose');
-			const response = await $client.sendStateEvent(
-				room.roomId,
-				'io.element.video.member',
-				{
-					devices: [],
-					expires_ts: Date.now() + 1000 * 60 * 60,
-				},
-				ownEvent.getStateKey()
-			);
-			console.log('Disconnect Response', response);
-			dispatch('disconnect');
-		});
-
-		meetApi.addEventListener('videoConferenceJoined', () => {
-			console.log('JitsiConference: videoConferenceJoined');
-
-			meetApi.executeCommand('setTileView', {
-				enabled: true,
-			});
-			meetApi.executeCommand('setNoiseSuppressionEnabled', {
-				enabled: true,
-			});
-		});
 	});
+	onDestroy(() => {
+		conferences.leave(jitsiConferenceId);
+		// TODO when do we disconnect?
 
-	$: if (meetApi) {
-		if ($voiceCallSettings.muted && !meetApi.isAudioMuted()) {
-			meetApi.executeCommand('toggleAudio');
-		} else if (!$voiceCallSettings.muted && meetApi.isAudioMuted()) {
-			meetApi.executeCommand('toggleAudio');
-		}
-	}
+		localTracksStore.clear();
 
-	onDestroy(async () => {
-		console.log('Unmounting JitsiConference');
-		const response = await $client.sendStateEvent(
+		const newDevices = currentDeviceList.filter((device: string) => device !== $client.getDeviceId());
+		const response = $client.sendStateEvent(
 			room.roomId,
 			'io.element.video.member',
 			{
@@ -178,16 +125,30 @@
 			},
 			ownEvent.getStateKey()
 		);
-		console.log('Disconnect Response', response);
-		if (meetApi) {
-			meetApi.dispose();
-		}
 	});
+
+	$: if ($localParticipant && ($voiceCallSettings.muted || $voiceCallSettings.deafened) && $localParticipant.audioEnabled) {
+		localParticipant.setAudioEnabled(false);
+	} else if ($localParticipant && !$voiceCallSettings.muted && !$voiceCallSettings.deafened && !$localParticipant.audioEnabled) {
+		localParticipant.setAudioEnabled(true);
+	}
+
+	$: if ($voiceCallSettings.deafened && !deafened) {
+		document.querySelectorAll('.participant-audio').forEach((el) => {
+			(el as HTMLAudioElement).muted = true;
+		});
+		deafened = true;
+		//TODO this is a hack, we should be able to do this in the stores to mute newly joined participants etc
+	} else if (!$voiceCallSettings.deafened && deafened) {
+		document.querySelectorAll('.participant-audio').forEach((el) => {
+			(el as HTMLAudioElement).muted = false;
+		});
+		deafened = false;
+	}
 </script>
 
-<svelte:head>
-	<!-- TODO generate our own... -->
-	<script src="https://meet.jit.si/external_api.js"></script>
-</svelte:head>
-
-<div class="h-full w-full" bind:this={jitsiParentNode} class:hidden />
+<div class="h-full w-full" class:hidden>
+	{#each Object.entries($conferences) as [conferenceId, conference], key}
+		<Conference {conferenceId} {conference} permitEntry={true} ownId={$currentConference?.myUserId()} />
+	{/each}
+</div>

@@ -22,6 +22,8 @@ export default defineConfig({
 				global: 'globalThis',
 			},
 			plugins: [esbuildCommonjs(['raf'])],
+			drop: ['console', 'debugger'],
+			pure: ['console.log', 'console.warn', 'console.error', 'console.info'],
 		},
 	},
 	// to make use of `TAURI_DEBUG` and other env variables
