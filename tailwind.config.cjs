@@ -8,8 +8,9 @@ module.exports = {
 			},
 		},
 		fontFamily: {
-			sans: ["'Poppins'", "'Roboto'", "'Open Sans'", 'sans-serif', 'Twemoji'],
+			sans: ["'Poppins'", 'sans-serif', 'Twemoji'],
 			plaster: ["'Plaster'", 'cursive'],
+			mono: ["'Roboto Mono'", 'monospace'],
 		},
 	},
 	plugins: [require('tailwind-scrollbar')({ nocompatible: true }), require('@vidstack/player/tailwind.cjs')],

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { client } from '$lib/store';
-	import { UserAvatar } from 'carbon-icons-svelte';
+	import UserAvatar from 'carbon-icons-svelte/lib/UserAvatar.svelte';
 	import ColorHash from 'color-hash';
 	import type { Room } from 'matrix-js-sdk';
 
@@ -9,7 +9,6 @@
 	export let roomImage: string;
 
 	$: user = $client.getUser(userId);
-	$: console.log(user);
 
 	const colorHash = new ColorHash({ saturation: 1.0, lightness: [0.5, 0.7] });
 	$: color = colorHash.hex(userId);
@@ -19,8 +18,6 @@
 	$: roomJoinTime = room.getMember(userId)?.membership === 'join' ? room.getMember(userId)?.events.member?.getTs() : null;
 
 	$: powerLevel = room.getMember(userId)?.powerLevel;
-
-	$: console.log(room.getMember(userId)?.events.member?.getContent());
 
 	const df = new Intl.DateTimeFormat('en', {
 		year: 'numeric',

@@ -1,9 +1,11 @@
 import { readable, writable } from 'svelte/store';
-import { invoke } from '@tauri-apps/api';
 import * as sdk from 'matrix-js-sdk';
 
 import { asyncReadable } from 'svelte-async-readable';
 import type { Room } from 'matrix-js-sdk';
+import { CryptoEvent } from 'matrix-js-sdk/lib/crypto';
+import type { MatrixCall } from 'matrix-js-sdk/lib/webrtc/call';
+import { createConnectionStore, DEFAULT_JITSI_CONFIG } from './jitsi/connectionStore';
 
 export const isLoggedIn = readable<null | boolean>(null, (set) => {
 	console.log('isLoggedIn: starting');
@@ -50,3 +52,23 @@ export const client = asyncReadable(writable<sdk.MatrixClient>(null as any), {
 });
 
 export const rootSpaces = writable<Room[]>([]);
+
+// export const currentVoiceRoomId = writable<string | null>(null);
+
+export interface VoiceCallSettings {
+	muted: boolean;
+	deafened: boolean;
+	room: string;
+	call?: MatrixCall;
+	firstClick: boolean;
+}
+
+export const voiceCallSettings = writable<VoiceCallSettings>({
+	muted: false,
+	deafened: false,
+	room: '',
+	call: undefined,
+	firstClick: true,
+});
+
+export const jitsiConnection = createConnectionStore(DEFAULT_JITSI_CONFIG, 'matrix-client-svelte');

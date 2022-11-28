@@ -1,0 +1,97 @@
+		const jwt = createJwtToken(room.roomId, accessToken!, serverName, displayName!, avatarUrl!);
+		const options = {
+			width: '100%',
+			height: '100%',
+			parentNode: jitsiParentNode,
+			devices: {
+				// audioInput: null,
+				// videoInput: null,
+			},
+			userInfo: {
+				displayName,
+				email,
+			},
+			roomName: widgetData.data.conferenceId,
+			interfaceConfigOverwrite: {
+				SHOW_JITSI_WATERMARK: false,
+				SHOW_WATERMARK_FOR_GUESTS: false,
+				MAIN_TOOLBAR_BUTTONS: [],
+				VIDEO_LAYOUT_FIT: 'height',
+				TILE_VIEW_MAX_COLUMNS: 5,
+			},
+			configOverwrite: {
+				subject: room.name,
+				startWithAudioMuted: $voiceCallSettings.muted,
+				startWithVideoMuted: true,
+				apiLogLevels: ['error'],
+				prejoinConfig: {
+					enabled: false,
+				},
+				toolbarButtons: ['microphone', 'camera', 'titleview', 'hangup', 'desktop'],
+				conferenceInfo: {
+					autoHide: [],
+				},
+				disableSelfViewSettings: true,
+				disableTileView: false,
+				enableWelcomePage: false,
+				disableAudioLevels: false,
+				logging: {
+					logLevel: 'error',
+				},
+			},
+			jwt,
+		};
+		console.log('Mounting JitsiConference', jitsiParentNode);
+		// meetApi = new JitsiMeetExternalAPI(JITSI_DOMAIN, options);
+
+
+
+		// meetApi.addEventListener('readyToClose', async () => {
+		// 	console.log('JitsiConference: readyToClose');
+		// 	const response = await $client.sendStateEvent(
+		// 		room.roomId,
+		// 		'io.element.video.member',
+		// 		{
+		// 			devices: [],
+		// 			expires_ts: Date.now() + 1000 * 60 * 60,
+		// 		},
+		// 		ownEvent.getStateKey()
+		// 	);
+		// 	console.log('Disconnect Response', response);
+		// 	dispatch('disconnect');
+		// });
+		// meetApi.addEventListener('videoConferenceJoined', () => {
+		// 	console.log('JitsiConference: videoConferenceJoined');
+		// 	meetApi.executeCommand('setTileView', {
+		// 		enabled: true,
+		// 	});
+		// 	meetApi.executeCommand('setNoiseSuppressionEnabled', {
+		// 		enabled: true,
+		// 	});
+		// });
+
+
+
+		
+		// const response = await $client.sendStateEvent(
+		// 	room.roomId,
+		// 	'io.element.video.member',
+		// 	{
+		// 		devices: [$client.deviceId],
+		// 		expires_ts: Date.now() + 1000 * 60 * 60,
+		// 	},
+		// 	ownEvent.getStateKey()
+		// );
+
+
+
+
+		// const response = await $client.sendStateEvent(
+		// 	room.roomId,
+		// 	'io.element.video.member',
+		// 	{
+		// 		devices: [],
+		// 		expires_ts: Date.now() + 1000 * 60 * 60,
+		// 	},
+		// 	ownEvent.getStateKey()
+		// );

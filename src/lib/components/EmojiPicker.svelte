@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Search } from 'carbon-icons-svelte';
+	import Search from 'carbon-icons-svelte/lib/Search.svelte';
 	import { createEventDispatcher } from 'svelte';
 
 	import groups from 'emojibase-data/en/messages.json';
@@ -16,8 +16,8 @@
 		char: string;
 		shortcode: string;
 	} = {
-		char: '',
-		shortcode: '',
+		char: '😀',
+		shortcode: 'grinning',
 	};
 
 	const onEmojiHover = (emoji: CompactEmoji) => () => {

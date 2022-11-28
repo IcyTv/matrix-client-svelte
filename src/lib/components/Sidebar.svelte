@@ -16,7 +16,6 @@
 		// Sort rooms by the user defined order
 		.then((rooms) => {
 			if (rooms) {
-				console.log(rooms);
 				rootSpaces.set(rooms);
 			}
 		});
@@ -37,12 +36,6 @@
 			{#each $rootSpaces as space}
 				<a href="/rooms/{space.roomId}">
 					<SidebarIcon initials={space.name} tooltip={space.name}>
-						<!-- on:click={(event) => {
-							console.log('SidebarIcon click', event, space, space.roomId);
-							goto(`/rooms/${space.roomId}`).then(() => {
-								console.log('goto href', window.location.href);
-							});
-						}} -->
 						{#if space.getAvatarUrl('https://matrix.org', 32, 32, 'scale')}
 							<img src={space.getAvatarUrl('https://matrix.org', 32, 32, 'scale')} alt={space.name} />
 						{/if}

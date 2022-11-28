@@ -2,11 +2,11 @@ import { defineConfig } from 'vite';
 import { sveltekit } from '@sveltejs/kit/vite';
 import wasm from 'vite-plugin-wasm';
 import topLevelAwait from 'vite-plugin-top-level-await';
-// import { prismjsPlugin } from 'vite-plugin-prismjs';
+import { viteCommonjs, esbuildCommonjs } from '@originjs/vite-plugin-commonjs';
 
 // https://vitejs.dev/config/
 export default defineConfig({
-	plugins: [sveltekit(), wasm(), topLevelAwait()],
+	plugins: [sveltekit(), wasm(), topLevelAwait(), viteCommonjs()],
 
 	// Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
 	// prevent vite from obscuring rust errors
@@ -21,6 +21,9 @@ export default defineConfig({
 			define: {
 				global: 'globalThis',
 			},
+			plugins: [esbuildCommonjs(['raf'])],
+			drop: ['console', 'debugger'],
+			pure: ['console.log', 'console.warn', 'console.error', 'console.info'],
 		},
 	},
 	// to make use of `TAURI_DEBUG` and other env variables
