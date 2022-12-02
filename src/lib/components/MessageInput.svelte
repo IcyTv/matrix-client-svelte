@@ -210,7 +210,7 @@
 		}
 
 		if (isOpen) {
-			if (emojiList.handleKeyDown(ev)) {
+			if (emojiList.handleKeyDown?.(ev)) {
 				ev.preventDefault();
 				ev.stopImmediatePropagation();
 				return false;

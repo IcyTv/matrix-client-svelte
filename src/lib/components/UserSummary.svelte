@@ -19,6 +19,7 @@
 	const dispatch = createEventDispatcher<CallEvents>();
 
 	$: userProfile = $client.getUser($client.getUserId()!);
+	$: console.log('Current User', userProfile);
 
 	$: room = $client.getRoom($voiceCallSettings.room ?? '');
 	$: rootSpaceId = $page.params.room;

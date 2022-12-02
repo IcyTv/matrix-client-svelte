@@ -1,51 +1,16 @@
 <script lang="ts" context="module">
-	import { KJUR } from 'jsrsasign';
-
-	declare let JitsiMeetExternalAPI: any;
-
-	const JITSI_DOMAIN = 'meet.element.io';
-
-	//TODO there is definitely a way to do this with typescript magic (i.e. only have connect,disconnect,... instead of 'jitsi:connect',...), but I don't know how
 	export interface JitsiEvents {
 		disconnect: {};
 		connect: {};
 	}
-
-	const createJwtToken = (roomId: string, accessToken: string, serverName: string, displayName: string, avatarUrl?: string) => {
-		const header = { alg: 'HS256', typ: 'JWT' };
-		const payload = {
-			iss: JITSI_DOMAIN,
-			sub: JITSI_DOMAIN,
-			aud: `https://${JITSI_DOMAIN}`,
-			room: '*',
-			context: {
-				matrix: {
-					room_id: roomId,
-					// token: token.access_token,
-					// server_name: token.matrix_server_name,
-					token: accessToken,
-					server_name: serverName,
-				},
-				user: {
-					avatar: avatarUrl,
-					displayName: displayName,
-				},
-			},
-		};
-
-		return KJUR.jws.JWS.sign('HS256', JSON.stringify(header), JSON.stringify(payload), 'notused');
-	};
 </script>
 
 <script lang="ts">
 	import type { Room } from 'matrix-js-sdk';
 	import { createEventDispatcher, onDestroy, onMount } from 'svelte';
 	import { client, voiceCallSettings, jitsiConnection } from '$lib/store';
-	import { createConnectionStore, DEFAULT_JITSI_CONFIG } from '$lib/jitsi/connectionStore';
 	import Conference from '$lib/jitsi/components/Conference.svelte';
 	import { localTracksStore } from '$lib/jitsi/localTrackStores';
-	import type TrackVADEmitter from '@solyd/lib-jitsi-meet/dist/esm/modules/detection/TrackVADEmitter';
-	import _ from 'underscore';
 
 	export let room: Room;
 	export let hidden: boolean = false;
@@ -55,8 +20,6 @@
 
 	let deafened = false;
 
-	$: accessToken = $client?.getAccessToken();
-	$: serverName = $client?.getDomain();
 	$: avatarUrlMxc = $client?.getUser($client.getUserId()!)?.avatarUrl;
 	$: avatarUrl = $client?.mxcUrlToHttp(avatarUrlMxc!);
 
@@ -78,7 +41,6 @@
 
 	$: currentConference = $conferences[jitsiConferenceId];
 	$: localParticipant = currentConference?.localParticipant;
-	$: participants = currentConference?.participants;
 
 	$: if ($currentConference) {
 		$currentConference.setDisplayName(displayName!);
@@ -149,6 +111,6 @@
 
 <div class="h-full w-full" class:hidden>
 	{#each Object.entries($conferences) as [conferenceId, conference], key}
-		<Conference {conferenceId} {conference} permitEntry={true} ownId={$currentConference?.myUserId()} />
+		<Conference {conferenceId} {conference} permitEntry={true} ownId={$currentConference?.myUserId()} on:leave={() => dispatch('disconnect')} />
 	{/each}
 </div>

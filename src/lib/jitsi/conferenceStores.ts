@@ -1,11 +1,11 @@
 import { derived, writable, get, type Writable, type Readable } from 'svelte/store';
 import { createParticipantsStore, createSingleParticipantStore } from './participantsStore';
-import type JitsiTrack from '@solyd/lib-jitsi-meet/dist/esm/modules/RTC/JitsiTrack';
 import { trackDirection, wireEventListeners, type JitsiEvents } from '$lib/utils/events';
-import type JitsiParticipant from '@solyd/lib-jitsi-meet/dist/esm/JitsiParticipant';
-import _ from 'underscore';
+import { omit } from 'underscore';
 import { localTracksStore } from './localTrackStores';
 import { addLocalTracksToConference } from './tracks';
+import type JitsiParticipant from '@solyd/lib-jitsi-meet/dist/esm/JitsiParticipant';
+import type JitsiTrack from '@solyd/lib-jitsi-meet/dist/esm/modules/RTC/JitsiTrack';
 import type JitsiConnection from '@solyd/lib-jitsi-meet/dist/esm/JitsiConnection';
 import type JitsiConference from '@solyd/lib-jitsi-meet/dist/esm/JitsiConference';
 
@@ -113,7 +113,7 @@ function createSingleConferenceStore(conferenceId: string, connectionStore: Writ
 							});
 						},
 						USER_LEFT: (pId: string) => {
-							remoteParticipantsStore.update(($store) => _.omit($store, pId));
+							remoteParticipantsStore.update(($store) => omit($store, pId));
 						},
 						USER_ROLE_CHANGED: (pId: string, role: string) => {
 							if (pId === localParticipantId) {
@@ -171,7 +171,7 @@ function createSingleConferenceStore(conferenceId: string, connectionStore: Writ
 						if ($connection) {
 							setStatus(ConferenceState.LEAVING);
 							conference
-								.leave()
+								?.leave()
 								.then(() => {
 									console.log('conference left', conferenceId);
 								})
@@ -269,7 +269,7 @@ function createSingleConferenceStore(conferenceId: string, connectionStore: Writ
 			permitEntryStore.set(permit);
 		},
 		leave: async () => {
-			await get(store).leave();
+			await get(store)?.leave();
 		},
 	};
 }
@@ -297,7 +297,7 @@ export function createConferencesStore(connectionStore: Writable<JitsiConnection
 				// TODO do we need to deinit more?
 				conferenceStore.leave();
 			}
-			return _.omit($store, conferenceId);
+			return omit($store, conferenceId);
 		});
 	};
 

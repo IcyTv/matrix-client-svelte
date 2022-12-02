@@ -59,7 +59,7 @@ export const DEFAULT_JITSI_CONFIG = {
 	serviceUrl: `wss://${DEFAULT_JITSI_DOMAIN}/xmpp-websocket`,
 	// serviceUrl: `https://${DEFAULT_JITSI_DOMAIN}/http-bind`,
 	e2eping: {
-		enabled: true,
+		enabled: false,
 	},
 	enableWelcomePage: false,
 	enableClosePage: false,
@@ -93,14 +93,12 @@ export function createConnectionStore(config: typeof DEFAULT_JITSI_CONFIG, room:
 	const stateStore = writable(ConnectionState.INITIAL);
 	const qualityStore = writable(0);
 	const store = writable<JitsiConnection | null>();
-	//@ts-ignore
-	const connection = new JitsiMeetJS.JitsiConnection(null, null, config);
 
+	let connection: JitsiConnection | null = null;
 	const setStatus = (state: ConnectionState) => {
 		store.set(state === ConnectionState.CONNECTED ? connection : null);
 		stateStore.set(state);
 	};
-
 	const events: JitsiEvents = {
 		connection: {
 			CONNECTION_ESTABLISHED: () => setStatus(ConnectionState.CONNECTED),
@@ -125,8 +123,10 @@ export function createConnectionStore(config: typeof DEFAULT_JITSI_CONFIG, room:
 		},
 	};
 
-	wireEventListeners('add', connection as any, events);
+	connection = new JitsiMeetJS.JitsiConnection(undefined, null, config);
+	console.log('Connection created');
 
+	wireEventListeners('add', connection as any, events);
 	setStatus(ConnectionState.CONNECTING);
 	// @ts-ignore
 	connection.connect();
@@ -135,7 +135,7 @@ export function createConnectionStore(config: typeof DEFAULT_JITSI_CONFIG, room:
 		const $state = get(stateStore);
 		if ($state === ConnectionState.CONNECTED || $state === ConnectionState.CONNECTING) {
 			setStatus(ConnectionState.DISCONNECTING);
-			connection
+			connection!
 				.disconnect()
 				.then(() => {
 					setStatus(ConnectionState.DISCONNECTED);

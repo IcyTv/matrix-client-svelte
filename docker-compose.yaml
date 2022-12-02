@@ -1,0 +1,65 @@
+version: '3'
+
+networks:
+  matrix_net:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.10.10.0/24
+          gateway: 10.10.10.1
+
+services:
+    postgres:
+        image: postgres:14
+        restart: unless-stopped
+        networks:
+            matrix_net:
+               ipv4_address: 10.10.10.2
+        volumes:
+            - postgres:/var/lib/postgresql/data
+        environment:
+            POSTGRES_PASSWORD: STRONG_PASSWORD
+            POSTGRES_USER: synapse
+            POSTGRES_DB: synapse
+            POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+
+    element:
+        image: vectorim/element-web:latest
+        restart: unless-stopped
+        volumes:
+            - ./docker/element-config.json:/app/config.json
+        networks:
+            matrix_net:
+               ipv4_address: 10.10.10.3
+
+    synapse:
+        image: matrixdotorg/synapse:latest
+        restart: unless-stopped
+        networks:
+            matrix_net:
+               ipv4_address: 10.10.10.4
+        volumes:
+            - ./docker/synapse:/data
+        depends_on:
+            - postgres
+    
+    caddy:
+        image: caddy:latest
+        restart: unless-stopped
+        ports:
+            - 80:80
+            - 443:443
+            - 443:443/udp
+        networks:
+            matrix_net:
+               ipv4_address: 10.10.10.5
+        volumes:
+          - ./docker/Caddyfile:/etc/caddy/Caddyfile
+          - caddy:/data
+
+
+volumes:
+    postgres:
+    caddy:
+    # synapse:

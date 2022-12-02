@@ -1,5 +1,4 @@
 import type JitsiConference from '@solyd/lib-jitsi-meet/dist/esm/JitsiConference';
-import { JitsiTrackErrors } from '@solyd/lib-jitsi-meet/dist/esm/JitsiTrackErrors';
 import type JitsiLocalTrack from '@solyd/lib-jitsi-meet/dist/esm/modules/RTC/JitsiLocalTrack';
 
 /**
@@ -45,7 +44,7 @@ function removeLocalTracksFromConference(conference: JitsiConference, localTrack
 				// Local track might be already disposed by direct
 				// JitsiTrack#dispose() call. So we should ignore this error
 				// here.
-				if (err.name !== JitsiTrackErrors.TRACK_IS_DISPOSED) {
+				if (err.name !== 'track.track_is_disposed') {
 					console.warn('Failed to remove local track from conference', err);
 				}
 			})

@@ -3,8 +3,9 @@ import { selectedDevices as selectedDevicesStore, type SelectedDevices } from '.
 import type { CreateLocalTracksOptions } from '@solyd/lib-jitsi-meet';
 import type JitsiTrack from '@solyd/lib-jitsi-meet/dist/esm/modules/RTC/JitsiTrack';
 import type { MediaType } from '@solyd/lib-jitsi-meet/dist/esm/service/RTC/MediaType';
-import _ from 'underscore';
 import type JitsiLocalTrack from '@solyd/lib-jitsi-meet/dist/esm/modules/RTC/JitsiLocalTrack';
+
+import { omit } from 'underscore';
 
 const { TRACK_AUDIO_LEVEL_CHANGED } = JitsiMeetJS.events.track;
 
@@ -127,7 +128,7 @@ function createLocalTracksStore() {
 					$tracks.video.dispose();
 				}
 
-				return _.omit($tracks, 'video');
+				return omit($tracks, 'video');
 			});
 
 			setTimeout(() => {

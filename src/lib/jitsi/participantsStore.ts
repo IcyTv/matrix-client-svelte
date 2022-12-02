@@ -1,5 +1,5 @@
 import { derived, writable, get, type Writable } from 'svelte/store';
-import _ from 'underscore';
+import { omit } from 'underscore';
 import { wireEventListeners, type JitsiEvents } from '$lib/utils/events';
 import type { MediaType } from '@solyd/lib-jitsi-meet/dist/esm/service/RTC/MediaType';
 import type JitsiTrack from '@solyd/lib-jitsi-meet/dist/esm/modules/RTC/JitsiTrack';
@@ -129,7 +129,7 @@ export function createSingleParticipantStore(isLocal = true) {
 				if (events[trackType]) {
 					wireEventListeners('remove', track as any, events[trackType]!);
 				}
-				tracksStore.update(($tracks) => _.omit($tracks, trackType));
+				tracksStore.update(($tracks) => omit($tracks, trackType));
 			}
 		},
 

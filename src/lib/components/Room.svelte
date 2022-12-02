@@ -37,6 +37,7 @@
 	import DomPurify from 'dompurify';
 	import { marked } from 'marked';
 	import WebRtcCallButton from './WebRTCCallButton.svelte';
+	import AllDone from './AllDone.svelte';
 
 	Prism.plugins.autoloader.languages_path = 'https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/';
 	Prism.manual = true;
@@ -316,9 +317,7 @@
 			<p class="flex-1 overflow-hidden overflow-ellipsis whitespace-nowrap pr-4 text-sm text-gray-400">{topic}</p>
 		{/if}
 
-		<WebRtcCallButton {room} class="ml-auto mr-1 h-5 w-5 flex-shrink-0 text-gray-400" />
-
-		<ThreadIcon class="mx-1 h-5 w-5 flex-shrink-0 text-gray-400" />
+		<ThreadIcon class="mx-1 ml-auto h-5 w-5 flex-shrink-0 text-gray-400" />
 		<NotificationFilled class="mx-1 h-5 w-5 flex-shrink-0 text-gray-400" />
 		<PinFilled class="mx-1 h-5 w-5 flex-shrink-0 text-gray-400" />
 		<UserMultiple class="mx-1 h-5 w-5 flex-shrink-0 text-gray-400" />
@@ -369,7 +368,7 @@
 				</div>
 
 				<div slot="noResults">No results</div>
-				<div slot="noMore">All done :)</div>
+				<div slot="noMore"><AllDone roomName={room.name} /></div>
 			</InfiniteLoading>
 			{#each messagesGrouped as eventGroup, groupIndex}
 				{#if groupIndex === messagesGrouped.length - 1 || eventGroup.date.getDate() != messagesGrouped[groupIndex + 1].date.getDate()}
@@ -571,8 +570,8 @@
 					});
 				});
 			}}
-			active={messageInputActive}
 		/>
+		<!-- active={messageInputActive} -->
 
 		<!--TODO animate-->
 		{#if userProfileId}

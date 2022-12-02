@@ -4,3 +4,9 @@
 declare namespace App {}
 
 declare var JitsiMeetJS: import('@solyd/lib-jitsi-meet/dist/esm/JitsiMeetJS').JitsiMeetJSType;
+
+declare global {
+	interface Window {
+		__TAURI__: any;
+	}
+}

@@ -3,79 +3,38 @@
 	import '@fontsource/roboto-mono';
 	import '@fontsource/plaster/400.css';
 
-	import { client } from '$lib/store';
+	import { client, isLoggedIn } from '$lib/store';
 	import '../app.css';
 	import { goto } from '$app/navigation';
-	import { appWindow } from '@tauri-apps/api/window';
 
 	import { logger } from 'matrix-js-sdk/lib/logger';
-	import Close from 'carbon-icons-svelte/lib/Close.svelte';
-	import Copy from 'carbon-icons-svelte/lib/Copy.svelte';
-	import Stop from 'carbon-icons-svelte/lib/Stop.svelte';
-	import Subtract from 'carbon-icons-svelte/lib/Subtract.svelte';
 
 	import Notifications from 'svelte-notifications';
-	//@ts-ignore
-	import { createBoundary } from '@crownframework/svelte-error-boundary';
-	import ErrorBoundary from '$lib/components/ErrorBoundary.svelte';
-	import VerificationModal from '$lib/components/VerificationModal.svelte';
-	const Boundary = createBoundary(ErrorBoundary);
+	import VerificationModal from '$lib/verification/VerificationModal.svelte';
+	import { page } from '$app/stores';
+	import TopBar from '$lib/components/tauri/TopBar.svelte';
 
 	logger.setLevel('WARN');
 
-	client.fetch().catch(console.error);
+	$: console.log('Is logged in?', $isLoggedIn);
 
-	let isMaximized = false;
-
-	$: appWindow.isMaximized().then((maximized) => {
-		isMaximized = maximized;
-	});
-
-	$: appWindow.onResized(() => {
-		appWindow.isMaximized().then((maximized) => {
-			isMaximized = maximized;
-		});
-	});
-
-	let isLoggedIn = $client?.isLoggedIn();
-	if (isLoggedIn == false && !location.pathname.startsWith('/login')) {
+	$: if ($isLoggedIn === false && !$page.url.pathname.startsWith('/login')) {
 		goto('/login');
 	}
+
+	const isTauri = typeof (window as any).__TAURI__ !== 'undefined';
 </script>
 
 <main class="h-screen w-screen bg-gray-900">
 	<Notifications>
-		<div data-tauri-drag-region class="fixed inset-0 bottom-auto z-50 flex h-8 select-none items-center bg-gray-900">
-			<h1 class="pl-4 font-plaster text-white" data-tauri-drag-region>Matrix</h1>
-			<div class="flex-grow" />
-			<button class="flex h-8 w-8 items-center justify-center hover:bg-gray-800" on:click={() => appWindow.minimize()} tabindex="-1">
-				<Subtract class="h-6 w-6 cursor-pointer text-white" />
-			</button>
-			<button class="flex h-8 w-8 items-center justify-center hover:bg-gray-800" on:click={() => appWindow.toggleMaximize()} tabindex="-1">
-				{#if isMaximized}
-					<Copy class="h-4 w-4 scale-x-[-1] cursor-pointer text-white" />
-				{:else}
-					<Stop class="h-5 w-5 cursor-pointer text-white" />
-				{/if}
-			</button>
-			<button class="flex h-8 w-8 items-center justify-center hover:bg-red-500" on:click={() => appWindow.close()} tabindex="-1">
-				<Close class="h-6 w-6 cursor-pointer text-white" />
-			</button>
-		</div>
+		{#if isTauri}
+			<TopBar />
+		{/if}
 
-		<!-- <Boundary onError={console.error}> -->
-		<!-- {#if $navigating}
-				<div class="flex h-full items-center justify-center bg-slate-700">
-					<Spinner />
-					<div class="ml-4 text-slate-400">Loading...</div>
-				</div>
-			{:else} -->
-		<div class="h-full w-full pt-8">
+		<div class="h-full w-full {isTauri ? 'pt-8' : ''}">
 			<slot />
 		</div>
-		<!-- {/if} -->
 
 		<VerificationModal />
-		<!-- </Boundary> -->
 	</Notifications>
 </main>

@@ -87,10 +87,6 @@
 	$: currentVoiceRoom = $voiceCallSettings.room && $client?.getRoom($voiceCallSettings.room);
 </script>
 
-<svelte:head>
-	<script src="https://meet.jit.si/external_api.js"></script>
-</svelte:head>
-
 <Sidebar />
 
 <div class="ml-16 flex h-full flex-row overflow-clip rounded-tl-xl bg-slate-700 text-white">
@@ -124,6 +120,11 @@
 						<p>{child.name}</p>
 					</a>
 
+					<!-- TODO think about weather we want to use element events here or if we (at some point) want to use jitsi connection events...
+								On the one hande element/matrix events work even outside of the conference,
+								but jitsi events will be more accurate (i.e. if not using matrix to connect...)
+								Or maybe we try and lock down rooms to only be joinable via matrix? Is that possible?
+					-->
 					{#each roomMembers[child.roomId] as member, key (member.id)}
 						<div class="ml-10 mr-2 flex cursor-pointer flex-row items-center rounded p-1 hover:bg-slate-600" in:slide={{ duration: 150 }} animate:flip>
 							<div class="relative h-6 w-6 rounded-full">

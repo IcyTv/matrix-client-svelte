@@ -1,4 +1,4 @@
-import { writable, derived, type Writable, type Readable } from 'svelte/store';
+import { writable, derived } from 'svelte/store';
 
 const { DEVICE_LIST_CHANGED } = JitsiMeetJS.events.mediaDevices;
 const { mediaDevices } = JitsiMeetJS;
