@@ -58,7 +58,6 @@ export function createSingleParticipantStore(isLocal = true) {
 				},
 				//TODO fix types
 				TRACK_MUTE_CHANGED: (track: any) => {
-					console.log('track mute changed', track);
 					fieldsStore.update(($fields) => ({ ...$fields, audioEnabled: !track.isMuted() }));
 				},
 			},
@@ -119,8 +118,6 @@ export function createSingleParticipantStore(isLocal = true) {
 				}
 				fieldsStore.update(($fields) => ({ ...$fields, [`${trackType}Enabled`]: !(track as any).isMuted() }));
 				tracksStore.update(($tracks) => ({ ...$tracks, [trackType]: track }));
-
-				console.log('addTrack', trackType, track, get(fieldsStore), get(tracksStore));
 			}
 		},
 		removeTrack: (track?: JitsiTrack) => {

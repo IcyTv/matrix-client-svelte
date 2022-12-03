@@ -9,7 +9,6 @@
 
 	let isLoading = true;
 	$: $client?.getJoinedRooms().then((rooms) => {
-		console.log('Got rooms', rooms);
 		let rs = rooms.joined_rooms
 			.map((room) => $client!.getRoom(room))
 			.map((room) => {
@@ -17,12 +16,10 @@
 				return room;
 			})
 			.filter((room) => room?.currentState.getStateEvents('m.space.parent').length === 0 && room?.isSpaceRoom()) as Room[];
-		console.log('Got root spaces', rs);
 		$rootSpaces = rs;
 		isLoading = false;
 	});
 
-	$: console.log('Root spaces', $rootSpaces);
 	const isTauri = (window as any).__TAURI__;
 </script>
 

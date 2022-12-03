@@ -4,7 +4,7 @@
 	export let roomName: string;
 </script>
 
-<div class="flex flex-col items-start gap-1 p-8">
+<div class="flex flex-col items-start gap-1 p-8 text-start">
 	<div class="w-fit rounded-full bg-slate-600 p-2">
 		<Hashtag class="h-12 w-12" />
 	</div>

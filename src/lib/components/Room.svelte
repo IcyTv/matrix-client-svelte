@@ -1,22 +1,11 @@
 <script lang="ts">
 	import { client } from '$lib/store';
-	import RelativeTime from '@yaireo/relative-time';
-	import Hashtag from 'carbon-icons-svelte/lib/Hashtag.svelte';
-	import Help from 'carbon-icons-svelte/lib/Help.svelte';
-	import Locked from 'carbon-icons-svelte/lib/Locked.svelte';
-	import MessageQueue from 'carbon-icons-svelte/lib/MessageQueue.svelte';
-	import NotificationFilled from 'carbon-icons-svelte/lib/NotificationFilled.svelte';
 	import OverflowMenuHorizontal from 'carbon-icons-svelte/lib/OverflowMenuHorizontal.svelte';
-	import PinFilled from 'carbon-icons-svelte/lib/PinFilled.svelte';
-	import PlayFilled from 'carbon-icons-svelte/lib/PlayFilled.svelte';
 	import Reply from 'carbon-icons-svelte/lib/Reply.svelte';
-	import Search from 'carbon-icons-svelte/lib/Search.svelte';
 	import UserAvatar from 'carbon-icons-svelte/lib/UserAvatar.svelte';
-	import UserMultiple from 'carbon-icons-svelte/lib/UserMultiple.svelte';
 	import FaceAdd from 'carbon-icons-svelte/lib/FaceAdd.svelte';
-	import ColorHash from 'color-hash';
 	import EMOJI_REGEX from 'emojibase-regex/emoji';
-	import { Direction, EventTimeline, EventType, type IEventWithRoomId, type MatrixEvent, type Room } from 'matrix-js-sdk';
+	import { EventType, type MatrixEvent, type Room } from 'matrix-js-sdk';
 	import Prism from 'prismjs';
 	import 'prismjs/plugins/autoloader/prism-autoloader';
 	import { afterUpdate, onDestroy, onMount } from 'svelte';
@@ -31,13 +20,15 @@
 	import ImagePopup from './ImagePopup.svelte';
 	import MessageInput from './MessageInput.svelte';
 	import UserProfile from './UserProfile.svelte';
-	import { Gesture, Media, MediaSync, MediaVisibility, PlayButton, Poster, Video } from '@vidstack/player-svelte';
 	import InfiniteLoading from 'svelte-infinite-loading';
 	import Spinner from './Spinner.svelte';
 	import DomPurify from 'dompurify';
 	import { marked } from 'marked';
-	import WebRtcCallButton from './WebRTCCallButton.svelte';
 	import AllDone from './AllDone.svelte';
+	import TopBar from '$lib/room/TopBar.svelte';
+	import { formatDate, transformMessages } from '$lib/room/utils';
+	import { fade } from 'svelte/transition';
+	import VideoMessage from '$lib/room/VideoMessage.svelte';
 
 	Prism.plugins.autoloader.languages_path = 'https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/';
 	Prism.manual = true;
@@ -47,132 +38,9 @@
 
 	const ONLY_EMOJI_REGEX = new RegExp(`^(${EMOJI_REGEX.source})+$`);
 
-	const MAX_TIMESTAMP_DIFF = 5 * 60 * 1000; // 5 minutes
-	const MAX_RELATIVE_DATE = 7 * 24 * 60 * 60 * 1000; // 7 days
-
-	interface MessageBody {
-		image?: string;
-		video?: string;
-		text: string;
-		mimeType: string;
-	}
-
-	interface MessageEvent {
-		event: MatrixEvent;
-		date: Date;
-		realTime: string;
-		body: MessageBody;
-	}
-
-	interface MessageEventGroup {
-		humanTime: string;
-		date: Date;
-		events: MessageEvent[];
-		sender: string;
-		senderAvatar?: string;
-		senderName?: string;
-		senderColor?: string;
-	}
-
-	const timeFormatter = new Intl.DateTimeFormat(undefined, {
-		year: undefined,
-		month: undefined,
-		day: undefined,
-		hour: 'numeric',
-		minute: 'numeric',
-	});
-	const dateFormatter = new Intl.DateTimeFormat(undefined, {
-		year: 'numeric',
-		month: 'long',
-		day: 'numeric',
-	});
-	const relativeDateFormatter = new Intl.RelativeTimeFormat(undefined, {
-		numeric: 'auto',
-		style: 'long',
-	});
-
-	const formatDate = (date: Date) => {
-		if (Date.now() - date.getTime() > MAX_RELATIVE_DATE) {
-			return dateFormatter.format(date);
-		} else {
-			return relativeDateFormatter.format(date.getUTCDate() - new Date().getUTCDate(), 'day');
-		}
-	};
-
 	let messages: MatrixEvent[] = [];
 
-	$: topic = room.currentState.getStateEvents('m.room.topic', '')?.getContent()?.topic;
-	$: isEncrypted = $client.isRoomEncrypted(room.roomId);
-
-	const colorHash = new ColorHash({ saturation: 1.0, lightness: [0.5, 0.7] });
-
-	const optionalMcxToHttp = (url?: string) => {
-		if (url) {
-			return $client.mxcUrlToHttp(url);
-		} else {
-			return url;
-		}
-	};
-
-	// $: messages = messages.sort((a, b) => a.getTs() - b.getTs());
-	// $: console.log(messages);
-
-	$: messagesGrouped = messages
-		.sort((a, b) => a.getTs() - b.getTs())
-		// .filter((event) => event.getType() === EventType.RoomMessage)
-		.filter((e) => {
-			return e.getType() === EventType.RoomMessage;
-		})
-		.map((e) => {
-			const eventTime = e.getTs();
-
-			// if (e.content.url) {
-			// 	console.log(e);
-			// }
-
-			return {
-				event: e,
-				date: new Date(eventTime),
-				realTime: timeFormatter.format(eventTime),
-				body: {
-					// text: e.content['m.new_content']?.formatted_body ?? e.content.formatted_body ?? e.content.body,
-					text: e.getContent().body,
-					// image: optionalMcxToHttp(e.content.info?.thumbnail_url ?? e.content.url),
-					image: optionalMcxToHttp(e.getContent().url),
-					// video: optionalMcxToHttp(e.content.url),
-					video: optionalMcxToHttp(e.getContent().url),
-					// mimeType: e.content.info?.mimetype ?? 'text/plain',
-					mimeType: e.getContent().info?.mimetype ?? 'text/plain',
-				},
-			} as MessageEvent;
-		})
-		.reduce<MessageEventGroup[]>((acc, val) => {
-			const prevSeq = acc[acc.length - 1];
-			// if (!prevSeq || prevSeq.sender !== val.event.sender || val.date.getTime() - prevSeq.date.getTime() > MAX_TIMESTAMP_DIFF) {
-			if (!prevSeq || prevSeq.sender !== val.event.getSender() || val.date.getTime() - prevSeq.date.getTime() > MAX_TIMESTAMP_DIFF) {
-				const time = new RelativeTime();
-				// const sender = $client.getUser(val.event.sender);
-				const sender = $client.getUser(val.event.getSender());
-				// const senderColor = colorHash.hex(val.event.sender);
-				const senderColor = colorHash.hex(val.event.getSender());
-				acc.push({
-					humanTime: time.from(val.date),
-					date: val.date,
-					events: [val],
-					// sender: val.event.sender,
-					sender: val.event.getSender(),
-					senderAvatar: $client.mxcUrlToHttp(sender?.avatarUrl!, 32, 32, 'scale', false) as string | undefined,
-					senderName: sender?.displayName as string | undefined,
-					senderColor,
-				});
-			} else {
-				prevSeq.events.push(val);
-			}
-
-			return acc;
-		}, []);
-
-	// $: console.log(messagesGrouped);
+	$: messagesGrouped = transformMessages($client, messages);
 
 	let reactions: {
 		[eventId: string]: {
@@ -251,23 +119,10 @@
 
 	onMount(() => {
 		$client.on('Room.timeline' as any, onMessage);
-
-		console.log('OnRoomMount', room.roomId);
-
-		// $client.roomInitialSync(room.roomId, 50).then((initialSync) => {
-		// 	messages = initialSync.messages!.chunk;
-		// 	Prism.highlightAll();
-		// 	setTimeout(() => {
-		// 		if (messagesContainer) {
-		// 			messagesContainer.scrollTop = messagesContainer.scrollHeight;
-		// 		}
-		// 	}, 0);
-		// });
 	});
 
 	onDestroy(() => {
 		$client.off('Room.timeline' as any, onMessage);
-		console.log('OnRoomDestroy', room.roomId);
 	});
 
 	let emojiPicker: HTMLDivElement;
@@ -304,32 +159,7 @@
 </script>
 
 <div class="flex max-w-[calc(100%-16rem)] flex-grow flex-col">
-	<div class="flex h-12 w-full max-w-full flex-row items-center bg-slate-700 p-2 shadow">
-		<Hashtag class="ml-2 mr-1 flex-shrink-0 text-gray-400" />
-		<h2 class="overflow-ellipsis whitespace-nowrap text-lg font-bold">{room.name}</h2>
-
-		{#if isEncrypted}
-			<Locked class="ml-2 text-green-700" />
-		{/if}
-
-		{#if topic}
-			<div class="mx-2 h-4 w-px bg-gray-500" />
-			<p class="flex-1 overflow-hidden overflow-ellipsis whitespace-nowrap pr-4 text-sm text-gray-400">{topic}</p>
-		{/if}
-
-		<ThreadIcon class="mx-1 ml-auto h-5 w-5 flex-shrink-0 text-gray-400" />
-		<NotificationFilled class="mx-1 h-5 w-5 flex-shrink-0 text-gray-400" />
-		<PinFilled class="mx-1 h-5 w-5 flex-shrink-0 text-gray-400" />
-		<UserMultiple class="mx-1 h-5 w-5 flex-shrink-0 text-gray-400" />
-
-		<div class="mx-2 flex flex-shrink flex-row items-center overflow-clip rounded bg-slate-900 px-2">
-			<input class="min-w-0 bg-slate-900 text-white focus:outline-none" type="text" placeholder="Search" />
-			<Search class="h-4 w-4 flex-shrink-0 text-gray-400" />
-		</div>
-
-		<MessageQueue class="mx-2 h-5 w-5 flex-shrink-0 text-gray-400" />
-		<Help class="mx-2 h-5 w-5 flex-shrink-0 text-gray-400" />
-	</div>
+	<TopBar {room} />
 
 	<div class="relative flex max-h-[calc(100%-40px)] max-w-full flex-grow flex-col">
 		<div bind:this={messagesContainer} class="flex max-h-full flex-grow flex-col scrollbar-thin scrollbar-thumb-slate-900 scrollbar-thumb-rounded-md" data-infinite-wrapper>
@@ -379,7 +209,7 @@
 					</div>
 				{/if}
 				<div class="flex w-full flex-col">
-					{#each eventGroup.events as event, i}
+					{#each eventGroup.events as event, i (event.event.getId())}
 						<div class="message-group group relative hover:bg-slate-800">
 							{#if i == 0}
 								<div
@@ -409,10 +239,10 @@
 							<div>
 								{#if i == 0}
 									<div class="flex flex-row items-center gap-4">
+										<!-- svelte-ignore a11y-click-events-have-key-events -->
 										<p
 											style="color: {eventGroup.senderColor}"
 											class="cursor-pointer py-1 font-bold hover:underline"
-											on:keypress
 											on:click={(e) => {
 												if (!userProfileId) {
 													userProfileId = eventGroup.sender;
@@ -439,45 +269,7 @@
 										on:keydown
 									/>
 								{:else if event.body.mimeType.startsWith('video/')}
-									<div class="h-full w-full overflow-visible">
-										<Media
-											class="max-h-96 max-w-md rounded"
-											on:vds-fullscreen-change={(e) => console.log('FUllscreen', e)}
-											on:vds-fullscreen-error={console.error}
-											on:vds-fullscreen-support-change={console.log}
-										>
-											<MediaSync syncVolume singlePlayback volumeStorageKey="rooms-video-volume">
-												<MediaVisibility exitViewport="pause" intersectionThreshold={0.01}>
-													<Video
-														controls
-														poster={event.body.image}
-														class="rounded"
-														on:fullscreenchange={console.log}
-														on:vds-fullscreen-change={console.log}
-													>
-														<video preload="metadata" src={event.body.video} class="rounded">
-															<track kind="captions" />
-														</video>
-													</Video>
-												</MediaVisibility>
-											</MediaSync>
-
-											<Poster
-												alt="{event.body.text} Preview"
-												class="absolute inset-0 media-error:hidden media-started:pointer-events-none media-started:opacity-0"
-											/>
-
-											<div
-												class="absolute inset-0 flex items-center justify-center rounded bg-black bg-opacity-50 opacity-0 transition-[opacity] duration-300 ease-in media-can-play:opacity-100 media-started:pointer-events-none media-started:opacity-0"
-											>
-												<PlayButton class="h-12 w-12">
-													<PlayFilled class="h-12 w-12" />
-												</PlayButton>
-											</div>
-
-											<Gesture action="toggle:paused" type="click" class="absolute inset-0" />
-										</Media>
-									</div>
+									<VideoMessage {event} />
 								{:else if ONLY_EMOJI_REGEX.test(event.body.text)}
 									<p class="message-content w-full text-4xl">{event.body.text}</p>
 								{:else}
@@ -575,7 +367,7 @@
 
 		<!--TODO animate-->
 		{#if userProfileId}
-			<div id="user-profile-tooltip" use:userProfileContent use:clickOutside={() => (userProfileId = null)}>
+			<div id="user-profile-tooltip" use:userProfileContent use:clickOutside={() => (userProfileId = null)} transition:fade>
 				<UserProfile userId={userProfileId} {room} roomImage={parentImage} />
 			</div>
 		{/if}

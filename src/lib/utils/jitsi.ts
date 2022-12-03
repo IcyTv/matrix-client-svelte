@@ -108,8 +108,6 @@ export const join = async (
 
 	meetApi.addEventListener('log', (...args: any[]) => console.log('Jitsi log', ...args));
 	meetApi.addEventListener('readyToClose', disconnect);
-
-	console.log(meetApi);
 };
 
 export const disconnect = async () => {

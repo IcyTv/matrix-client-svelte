@@ -202,6 +202,10 @@ const createVerificationStore = () => {
 		},
 
 		reset: () => {
+			get(store).request?.cancel({
+				reason: 'User cancelled',
+				code: 'm.user',
+			});
 			store.set({ isRequesting: false, request: undefined, accepted: false });
 		},
 	};

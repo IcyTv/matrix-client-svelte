@@ -16,8 +16,6 @@
 
 	logger.setLevel('WARN');
 
-	$: console.log('Is logged in?', $isLoggedIn);
-
 	$: if ($isLoggedIn === false && !$page.url.pathname.startsWith('/login')) {
 		goto('/login');
 	}
@@ -31,10 +29,12 @@
 			<TopBar />
 		{/if}
 
-		<div class="h-full w-full {isTauri ? 'pt-8' : ''}">
+		<div class="h-full w-full" class:pt-8={isTauri}>
 			<slot />
 		</div>
 
-		<VerificationModal />
+		{#if $isLoggedIn === true}
+			<VerificationModal />
+		{/if}
 	</Notifications>
 </main>

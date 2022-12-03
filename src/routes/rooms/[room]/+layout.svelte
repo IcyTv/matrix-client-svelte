@@ -1,24 +1,18 @@
 <script lang="ts">
-	import Sidebar from '$lib/components/Sidebar.svelte';
-	import { page } from '$app/stores';
-	import { client, voiceCallSettings } from '$lib/store';
-	import Spinner from '$lib/components/Spinner.svelte';
-	import ServerHeader from '$lib/components/ServerHeader.svelte';
-	import { RoomState, RoomStateEvent, type MatrixEvent, type Room } from 'matrix-js-sdk';
-	import Hashtag from 'carbon-icons-svelte/lib/Hashtag.svelte';
-	import User from 'carbon-icons-svelte/lib/User.svelte';
-	import VolumeUpFilled from 'carbon-icons-svelte/lib/VolumeUpFilled.svelte';
-	import UserSummary from '$lib/components/UserSummary.svelte';
-	// import { User, VolumeUpFilled } from 'carbon-icons-svelte';
-
-	import { slide, fade } from 'svelte/transition';
-	import { getUsersInCall } from '$lib/utils/call';
-	import { onDestroy, onMount } from 'svelte';
-
-	import JitsiConference from '$lib/components/JitsiConference.svelte';
-	import { flip } from 'svelte/animate';
 	import _ from 'underscore';
-	import { list } from 'postcss';
+	import { client, voiceCallSettings } from '$lib/store';
+	import { flip } from 'svelte/animate';
+	import { page } from '$app/stores';
+	import { RoomState, RoomStateEvent, type Room } from 'matrix-js-sdk';
+	import { slide } from 'svelte/transition';
+	import Hashtag from 'carbon-icons-svelte/lib/Hashtag.svelte';
+	import JitsiConference from '$lib/components/JitsiConference.svelte';
+	import ServerHeader from '$lib/components/ServerHeader.svelte';
+	import Sidebar from '$lib/components/Sidebar.svelte';
+	import Spinner from '$lib/components/Spinner.svelte';
+	import User from 'carbon-icons-svelte/lib/User.svelte';
+	import UserSummary from '$lib/components/UserSummary.svelte';
+	import VolumeUpFilled from 'carbon-icons-svelte/lib/VolumeUpFilled.svelte';
 
 	let roomId: string;
 	$: roomId = $page.params.room;
@@ -32,8 +26,6 @@
 
 	$: currentlySelected = $page.params.channel;
 	$: userProfile = $client?.getUser($client.getUserId()!);
-
-	$: $voiceCallSettings.call && console.log('UsersInCall', getUsersInCall($voiceCallSettings.call), room?.currentState);
 
 	let roomMembers: {
 		[roomId: string]: {
@@ -95,15 +87,9 @@
 			<Spinner />
 		</div>
 	{:else}
-		<div class="relative z-10 flex h-full w-64 flex-shrink-0 select-none flex-col bg-slate-800 shadow-lg shadow-black">
+		<div class="relative flex h-full w-64 flex-shrink-0 select-none flex-col bg-slate-800 shadow-lg shadow-black">
 			<ServerHeader bind:room class="mb-4" />
 
-			<!-- {#await children}
-				<div class="h-8 rounded mx-2 mb-2 bg-slate-600 animate-pulse" />
-				<div class="h-8 rounded mx-2 mb-2 bg-slate-600 animate-pulse" />
-				<div class="h-8 rounded mx-2 mb-2 bg-slate-600 animate-pulse" />
-				<div class="h-8 rounded mx-2 mb-2 bg-slate-600 animate-pulse" />
-			{:then c} -->
 			{#each children?.filter((c) => !c.isSpaceRoom()) ?? [] as child}
 				<div class="flex flex-col">
 					<a
@@ -140,7 +126,6 @@
 					{/each}
 				</div>
 			{/each}
-			<!-- {/await} -->
 
 			<UserSummary
 				on:disconnect={() => {

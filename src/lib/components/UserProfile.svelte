@@ -29,7 +29,7 @@
 	export { clazz as class };
 </script>
 
-<div class="{clazz} h-fit w-96 overflow-clip rounded-lg bg-slate-800 pb-2 shadow-lg shadow-black">
+<div class="{clazz} z-10 h-fit w-96 overflow-clip rounded-lg bg-slate-800 pb-2 shadow-lg shadow-black">
 	<div class="h-12 w-full" style="background-color: {color};" />
 	<div class="group relative -mt-8 ml-4 mr-auto h-24 w-24 rounded-full">
 		<div

@@ -11,9 +11,6 @@
 	import Requested from './Requested.svelte';
 	import VerificationSas from './VerificationSAS.svelte';
 
-	$: console.log('VerificationStore', verificationStore);
-	$: console.log('$VerificationStore', $verificationStore);
-
 	$: showSAS = $verificationStore.request?.otherPartySupportsMethod(verificationMethods.SAS);
 	$: showQR = $verificationStore.request?.otherPartySupportsMethod(SCAN_QR_CODE_METHOD);
 
@@ -31,7 +28,7 @@
 	let hasVerifier = false;
 	let sasEvent: ISasEvent;
 
-	$: device = $client.getStoredDevice($client.getUserId()!, $verificationStore.request?.channel.deviceId || '');
+	$: device = $client?.getStoredDevice($client.getUserId()!, $verificationStore.request?.channel.deviceId || '');
 
 	const updateVerifierState = () => {
 		const request = $verificationStore.request;
@@ -82,21 +79,23 @@
 	<div
 		class="absolute inset-0 z-50 flex items-center justify-center overflow-hidden bg-slate-900 bg-opacity-50 text-white"
 		transition:fade
-		on:click={() => {
+		on:click|self={() => {
 			// verificationStore;
+			verificationStore.reset();
 		}}
 		on:keydown={(event) => {
 			if (event.key === 'Escape') {
+				verificationStore.reset();
 				// request?.cancel();
 				// request = null;
 			}
 		}}
 	>
 		<div class="flex flex-col rounded bg-slate-700 p-6">
-			Verify this device by completing one of the following:
 			{#if $verificationStore.phase === Phase.Requested}
 				<Requested request={$verificationStore.request} />
 			{:else if $verificationStore.phase === Phase.Ready}
+				<p>Verify this device by completing one of the following:</p>
 				{#if showQR}
 					<p class="text-red-500">Currently, QR codes are unsupported!</p>
 				{/if}
@@ -124,11 +123,16 @@
 						on:done={() => sasEvent.confirm()}
 						isSelfVerification={$verificationStore.request?.isSelfVerification}
 					/>
+				{:else}
+					<p>Unkonwn verification Method...</p>
+					<button on:click={() => verificationStore.reset()}>Cancel</button>
 				{/if}
 			{:else if $verificationStore.phase === Phase.Done}
 				<p>Verification complete!</p>
 			{:else if $verificationStore.phase === Phase.Cancelled}
 				<p>Verification cancelled!</p>
+			{:else}
+				<p>Unknown verification phase: {$verificationStore.phase}</p>
 			{/if}
 		</div>
 	</div>

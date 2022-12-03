@@ -35,7 +35,6 @@
 	});
 
 	function handleHomeserverSelect(event: CustomEvent<{ value: string; label: string }>) {
-		console.log('Selected homeserver', event.detail);
 		$homeserverStore = event.detail.value;
 		loading = true;
 	}

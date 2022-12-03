@@ -75,7 +75,6 @@ function createSingleConferenceStore(conferenceId: string, connectionStore: Writ
 					if (pId) {
 						cachedTrackParticipantId.set(track, pId);
 						remoteParticipantsStore.updateParticipant(pId, (pStore) => {
-							console.log('updateParticipant', pId, pStore);
 							pStore[fnName](track);
 						});
 					} else {
@@ -103,7 +102,6 @@ function createSingleConferenceStore(conferenceId: string, connectionStore: Writ
 						KICKED: () => setStatus(ConferenceState.KICKED),
 
 						USER_JOINED: (pId: string, participant: JitsiParticipant) => {
-							console.log(pId, participant.getDisplayName(), participant, participant.getTracks(), (participant as any)._tracks);
 							remoteParticipantsStore.updateParticipant(pId, (pStore) => {
 								pStore.updateFieldsFromJitsiParticipant(participant);
 								// for (const track of participant.getTracks()) {
