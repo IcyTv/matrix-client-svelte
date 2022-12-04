@@ -11,10 +11,6 @@
 	$: $client?.getJoinedRooms().then((rooms) => {
 		let rs = rooms.joined_rooms
 			.map((room) => $client!.getRoom(room))
-			.map((room) => {
-				console.log(room);
-				return room;
-			})
 			.filter((room) => room?.currentState.getStateEvents('m.space.parent').length === 0 && room?.isSpaceRoom()) as Room[];
 		$rootSpaces = rs;
 		isLoading = false;

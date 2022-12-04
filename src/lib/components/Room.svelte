@@ -29,6 +29,7 @@
 	import { formatDate, transformMessages } from '$lib/room/utils';
 	import { fade } from 'svelte/transition';
 	import VideoMessage from '$lib/room/VideoMessage.svelte';
+	import { createEventTimelineStore, createRoomStateStore, roomsCache } from '$lib/room/stores';
 
 	Prism.plugins.autoloader.languages_path = 'https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/';
 	Prism.manual = true;
@@ -38,92 +39,12 @@
 
 	const ONLY_EMOJI_REGEX = new RegExp(`^(${EMOJI_REGEX.source})+$`);
 
-	let messages: MatrixEvent[] = [];
-
-	$: messagesGrouped = transformMessages($client, messages);
-
-	let reactions: {
-		[eventId: string]: {
-			[reaction: string]: {
-				count: number;
-				selfHasReacted: boolean;
-			};
-		};
-	};
-
-	$: {
-		const groupedReactions = _.groupBy(
-			messages
-				.filter((m) => m.getType() === EventType.Reaction)
-				// .filter((m) => m.content['m.relates_to'] && m.content['m.relates_to'].rel_type === 'm.annotation')
-				.filter((m) => m.getContent()['m.relates_to'] && m.getContent()['m.relates_to']?.rel_type === 'm.annotation')
-				.map((m) => {
-					// const event = m.content['m.relates_to']?.event_id;
-					const event = m.getContent()['m.relates_to']?.event_id;
-					// const reaction = m.content['m.relates_to']?.key;
-					const reaction = m.getContent()['m.relates_to']?.key;
-					const sender = m.getSender();
-					return { event, reaction, sender };
-				}),
-			'event'
-		);
-		reactions = Object.fromEntries(
-			Object.entries(groupedReactions).map(([event, reactions]) => {
-				const counts = _.countBy(reactions, 'reaction');
-				return [
-					event,
-					Object.fromEntries(
-						Object.entries(counts).map(([reaction, count]) => [
-							reaction,
-							{
-								count,
-								selfHasReacted: reactions.some((r) => r.reaction === reaction && r.sender === $client.getUserId()),
-							},
-						])
-					),
-				];
-			})
-		);
-	}
-
-	const onMessage = (event: MatrixEvent) => {
-		if (event.getRoomId() !== room.roomId) return;
-
-		if (event.getType() === EventType.RoomMessage) {
-			if (event.isRelation('m.replace')) {
-				const eventId = event.getRelation()!.event_id;
-				const index = messages.findIndex((m) => m.getId() === eventId);
-				if (index !== -1) {
-					messages[index] = event;
-				}
-			} else {
-				// messages.push(event.event as IEventWithRoomId);
-				messages.push(event);
-			}
-
-			messages = messages;
-		} else if (event.getType() === EventType.Reaction) {
-			// messages.push(event.event as IEventWithRoomId);
-			messages.push(event);
-			messages = messages;
-		} else {
-			if (event.getType().startsWith('m.call')) {
-				// Ignore for now
-				return;
-			}
-			console.log('Ignoring event', event.getType(), event);
-		}
-	};
+	// const messages = createEventTimelineStore(room);
+	$: roomStore = roomsCache.get(room.roomId);
+	$: messages = roomStore.messages;
+	$: reactions = roomStore.reactions;
 
 	let messagesContainer: HTMLElement;
-
-	onMount(() => {
-		$client.on('Room.timeline' as any, onMessage);
-	});
-
-	onDestroy(() => {
-		$client.off('Room.timeline' as any, onMessage);
-	});
 
 	let emojiPicker: HTMLDivElement;
 
@@ -166,17 +87,7 @@
 			<InfiniteLoading
 				on:infinite={async (event) => {
 					try {
-						const liveTimeline = room.getLiveTimeline();
-
-						if (!liveTimeline) {
-							console.log('No timeline found');
-							event.detail.loaded();
-							return;
-						}
-
-						const isNotDone = await $client.paginateEventTimeline(liveTimeline, { backwards: true, limit: 50 });
-
-						messages = liveTimeline.getEvents().map((event) => event);
+						const isNotDone = await roomStore.paginate();
 
 						//TODO figure out better scroll behavior
 
@@ -200,8 +111,8 @@
 				<div slot="noResults">No results</div>
 				<div slot="noMore"><AllDone roomName={room.name} /></div>
 			</InfiniteLoading>
-			{#each messagesGrouped as eventGroup, groupIndex}
-				{#if groupIndex === messagesGrouped.length - 1 || eventGroup.date.getDate() != messagesGrouped[groupIndex + 1].date.getDate()}
+			{#each $messages as eventGroup, groupIndex}
+				{#if groupIndex === $messages.length - 1 || eventGroup.date.getDate() != $messages[groupIndex + 1].date.getDate()}
 					<div class="my-2 flex w-full flex-row items-center justify-center px-2 py-1 text-sm font-bold text-gray-400">
 						<div class="mx-2 h-px flex-grow bg-gray-600" />
 						<p class="w-fit">{formatDate(eventGroup.date)}</p>
@@ -302,11 +213,11 @@
 								<OverflowMenuHorizontal class="message-action-button" />
 							</div>
 
-							{#if reactions[event.event.getId()]}
+							{#if $reactions[event.event.getId()]}
 								<!-- This div fills the grid -->
 								<div />
 								<div class="group">
-									{#each Object.entries(reactions[event.event.getId()]) as [emoji, reaction]}
+									{#each Object.entries($reactions[event.event.getId()]) as [emoji, reaction]}
 										<div
 											class="mr-1 mb-1 inline-flex cursor-pointer select-none flex-row items-center justify-center gap-2 rounded bg-slate-600 px-2 py-[2px] hover:ring-1 hover:ring-blue-400
 											{reaction.selfHasReacted ? 'bg-blue-900 ring-1 ring-blue-700' : ''}"
