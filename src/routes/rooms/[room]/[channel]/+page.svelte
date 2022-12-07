@@ -23,7 +23,5 @@
 {:else if room.isElementVideoRoom()}
 	<!-- <JitsiConference {room} /> -->
 {:else}
-	{#key room.roomId}
-		<Room {room} parentImage={parentRoomImage ?? ''} />
-	{/key}
+	<Room {room} parentImage={parentRoomImage ?? ''} />
 {/if}

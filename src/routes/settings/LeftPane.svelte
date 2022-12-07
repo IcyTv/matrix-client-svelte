@@ -5,6 +5,7 @@
 		Devices = 'devices',
 		Voice = 'voice',
 		Logout = 'logout',
+		Cryptography = 'cryptography',
 	}
 </script>
 
@@ -37,8 +38,9 @@
 
 	<p class="mx-2 select-none px-2 text-sm font-extrabold text-slate-400">USER SETTINGS</p>
 	<SelectorButton page={SettingsSubPage.Account} {selected} on:click={() => (selected = SettingsSubPage.Account)}>My Account</SelectorButton>
-	<SelectorButton page={SettingsSubPage.Profiles} {selected} on:click={() => (selected = SettingsSubPage.Profiles)}>Profiles</SelectorButton>
+	<!-- <SelectorButton page={SettingsSubPage.Profiles} {selected} on:click={() => (selected = SettingsSubPage.Profiles)}>Profiles</SelectorButton> -->
 	<SelectorButton page={SettingsSubPage.Devices} {selected} on:click={() => (selected = SettingsSubPage.Devices)}>Devices</SelectorButton>
+	<SelectorButton page={SettingsSubPage.Cryptography} {selected} on:click={() => (selected = SettingsSubPage.Cryptography)}>Cryptography</SelectorButton>
 
 	<div class="my-1 mx-4 h-px bg-slate-600" />
 	<p class="mx-2 select-none px-2 text-sm font-extrabold text-slate-400">APP SETTINGS</p>

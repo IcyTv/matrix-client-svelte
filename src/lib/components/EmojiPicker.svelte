@@ -7,6 +7,7 @@
 	import shortcodes from 'emojibase-data/en/shortcodes/emojibase.json';
 	import type { CompactEmoji } from 'emojibase';
 	import { clickOutside } from 'svelte-use-click-outside';
+	import { recentEmojiStore } from '$lib/store';
 
 	const dispatcher = createEventDispatcher();
 	let clazz: string = '';
@@ -34,6 +35,33 @@
 	};
 
 	export let node: HTMLDivElement | null = null;
+
+	$: recentEmojis = $recentEmojiStore.map((recent) => emojis.find((e) => e.unicode === recent[0])).filter((e) => e) as CompactEmoji[];
+
+	const onEmojiClick = (emoji: CompactEmoji) => () => {
+		let shortcode = shortcodes[emoji.hexcode];
+		if (typeof shortcodes === 'string') {
+			shortcode = [shortcodes];
+		}
+
+		recentEmojiStore.update((recent) => {
+			const index = recent.findIndex((e) => e[0] === emoji.unicode);
+			if (index === -1) {
+				recent.push([emoji.unicode, 1]);
+			} else {
+				recent[index][1]++;
+			}
+			recent = recent.sort((a, b) => b[1] - a[1]);
+			// Maximum of 20 recent emojis...
+			recent = recent.slice(0, 20);
+			return recent;
+		});
+
+		dispatcher('emoji', {
+			...emoji,
+			shortcodes: shortcode,
+		});
+	};
 </script>
 
 <div use:clickOutside={() => dispatcher('click-outside')} bind:this={node} class="flex h-96 w-96 flex-col overflow-clip rounded-lg bg-slate-800 {clazz}">
@@ -47,6 +75,22 @@
 	<div class="mx-4 mt-5 flex-grow select-none scrollbar-thin scrollbar-track-slate-800 scrollbar-thumb-slate-600 scrollbar-thumb-rounded-lg">
 		<div />
 
+		<div class="flex flex-col">
+			<h3 class="capitalize">Recent</h3>
+			<div class="flex flex-row flex-wrap">
+				{#each recentEmojis as emoji}
+					<button
+						class="group flex h-12 w-12 items-center justify-center rounded hover:bg-slate-500"
+						on:click={onEmojiClick(emoji)}
+						on:mouseover={onEmojiHover(emoji)}
+						on:focus={onEmojiHover(emoji)}
+					>
+						<p class="text-3xl transition-all duration-150 group-hover:scale-110">{emoji.unicode}</p>
+					</button>
+				{/each}
+			</div>
+		</div>
+
 		{#each groups.groups as group}
 			<div class="flex flex-col">
 				<h3 class="capitalize">{group.message}</h3>
@@ -54,16 +98,7 @@
 					{#each emojis.filter((emoji) => emoji.group === group.order) as emoji}
 						<button
 							class="group flex h-12 w-12 items-center justify-center rounded hover:bg-slate-500"
-							on:click={() => {
-								let shortcode = shortcodes[emoji.hexcode];
-								if (typeof shortcodes === 'string') {
-									shortcode = [shortcodes];
-								}
-								dispatcher('emoji', {
-									...emoji,
-									shortcodes: shortcode,
-								});
-							}}
+							on:click={onEmojiClick(emoji)}
 							on:mouseover={onEmojiHover(emoji)}
 							on:focus={onEmojiHover(emoji)}
 						>

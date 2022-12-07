@@ -25,6 +25,7 @@ interface MessageEventGroup {
 	senderAvatar?: string;
 	senderName?: string;
 	senderColor?: string;
+	hasToShowDate: boolean;
 }
 
 export const MAX_TIMESTAMP_DIFF = 5 * 60 * 1000; // 5 minutes
@@ -61,6 +62,8 @@ export const transformMessages = (client: MatrixClient, events: MatrixEvent[]) =
 	events
 		.sort((a, b) => a.getTs() - b.getTs())
 		.filter((e) => e.getType() === EventType.RoomMessage)
+		// Filter out redacted events
+		.filter((e) => !e.isRedacted())
 		.map((e) => {
 			const eventTime = e.getTs();
 
@@ -72,7 +75,7 @@ export const transformMessages = (client: MatrixClient, events: MatrixEvent[]) =
 					// text: e.content['m.new_content']?.formatted_body ?? e.content.formatted_body ?? e.content.body,
 					text: e.getContent().body,
 					// image: optionalMcxToHttp(e.content.info?.thumbnail_url ?? e.content.url),
-					image: optionalMcxToHttp(client, e.getContent().url),
+					image: optionalMcxToHttp(client, e.getContent().info?.thumbnail_url) || optionalMcxToHttp(client, e.getContent().url),
 					// video: optionalMcxToHttp(e.content.url),
 					video: optionalMcxToHttp(client, e.getContent().url),
 					// mimeType: e.content.info?.mimetype ?? 'text/plain',
@@ -98,6 +101,8 @@ export const transformMessages = (client: MatrixClient, events: MatrixEvent[]) =
 					senderAvatar: optionalMcxToHttp(client, sender?.avatarUrl) ?? undefined,
 					senderName: sender?.displayName as string | undefined,
 					senderColor,
+					// Has to show date if the last event was on a different day
+					hasToShowDate: !prevSeq || prevSeq.date.getDate() !== val.date.getDate(),
 				});
 			} else {
 				prevSeq.events.push(val);

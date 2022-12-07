@@ -15,8 +15,6 @@
 	import SendButton from './SendButton.svelte';
 	import { withCode } from 'svelte-slate/plugins/CodeElement.svelte';
 
-	let element: HTMLDivElement;
-
 	let emojiList: EmojiList;
 
 	let isOpen = false;
@@ -236,6 +234,28 @@
 			return false;
 		}
 	};
+
+	const onEmoji = (emoji: CustomEvent<any>) => {
+		let name;
+		if (typeof emoji.detail.shortcodes === 'string') {
+			name = [emoji.detail.shortcodes];
+		} else {
+			name = emoji.detail.shortcodes;
+		}
+		if (!selection) {
+			/// Set selection to the end of the document
+			Transforms.select(editor, Editor.end(editor, []));
+			selection = editor.selection as Range;
+		}
+
+		const nextPath = Path.next(Path.next(selection.anchor.path));
+
+		EmojiEditor.insertEmoji(editor, emoji.detail.unicode, name);
+		Editor.normalize(editor);
+
+		Transforms.select(editor, { path: nextPath, offset: 0 });
+		focus(editor);
+	};
 </script>
 
 <div class="relative m-4 flex flex-row rounded-md bg-slate-600 px-4 py-3">
@@ -274,27 +294,7 @@
 		class="absolute top-0 left-0 right-0 -translate-y-[calc(100%+1rem)] rounded shadow-lg shadow-slate-800"
 		{searchTerm}
 	/>
-	<EmojiPickerButton
-		on:emoji={(emoji) => {
-			let name;
-			if (typeof emoji.detail.shortcodes === 'string') {
-				name = [emoji.detail.shortcodes];
-			} else {
-				name = emoji.detail.shortcodes;
-			}
-			if (!selection) {
-				return;
-			}
-
-			const nextPath = Path.next(Path.next(selection.anchor.path));
-
-			EmojiEditor.insertEmoji(editor, emoji.detail.unicode, name);
-			Editor.normalize(editor);
-
-			Transforms.select(editor, { path: nextPath, offset: 0 });
-			focus(editor);
-		}}
-	/>
+	<EmojiPickerButton on:emoji={onEmoji} />
 
 	<SendButton />
 </div>

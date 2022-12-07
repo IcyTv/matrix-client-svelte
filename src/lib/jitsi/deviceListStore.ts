@@ -1,3 +1,4 @@
+import { createLocalStorage, persist } from '@macfja/svelte-persistent-store';
 import { writable, derived } from 'svelte/store';
 
 const { DEVICE_LIST_CHANGED } = JitsiMeetJS.events.mediaDevices;
@@ -71,15 +72,15 @@ function getDefaultDeviceId(deviceList: MediaDeviceInfo[], kind: MediaDeviceInfo
 	}
 }
 export interface SelectedDevices {
-	videoInput?: string | null;
-	audioInput?: string | null;
-	audioOutput?: string | null;
+	videoInput?: string;
+	audioInput?: string;
+	audioOutput?: string;
 }
 
 export const defaultDevices = derived<typeof deviceList, SelectedDevices>(deviceList, ($deviceList) => ({
-	videoInput: getDefaultDeviceId($deviceList, 'videoinput'),
-	audioInput: getDefaultDeviceId($deviceList, 'audioinput'),
-	audioOutput: getDefaultDeviceId($deviceList, 'audiooutput'),
+	videoInput: getDefaultDeviceId($deviceList, 'videoinput') ?? undefined,
+	audioInput: getDefaultDeviceId($deviceList, 'audioinput') ?? undefined,
+	audioOutput: getDefaultDeviceId($deviceList, 'audiooutput') ?? undefined,
 }));
 
-export const selectedDevices = writable<SelectedDevices | null>(null);
+export const selectedDevices = persist(writable<SelectedDevices>({}), createLocalStorage(), 'selectedDevices');

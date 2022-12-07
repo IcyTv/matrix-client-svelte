@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Spinner from '$lib/components/Spinner.svelte';
 	import { client, verificationStore } from '$lib/store';
 	import type { IMyDevice } from 'matrix-js-sdk';
 	import { verificationMethods } from 'matrix-js-sdk/lib/crypto';
@@ -114,15 +115,19 @@
 			{:else if $verificationStore.phase === Phase.Started}
 				{#if $verificationStore.request?.chosenMethod === verificationMethods.RECIPROCATE_QR_CODE}
 					<p class="text-red-500">QR Verification is currently unsupported...</p>
-				{:else if $verificationStore.request?.chosenMethod === verificationMethods.SAS}
-					<VerificationSas
-						sas={sasEvent.sas}
-						displayName={$verificationStore.request?.otherUserId}
-						{device}
-						on:cancel={() => sasEvent.mismatch()}
-						on:done={() => sasEvent.confirm()}
-						isSelfVerification={$verificationStore.request?.isSelfVerification}
-					/>
+				{:else if $verificationStore.request?.chosenMethod === verificationMethods.SAS && sasEvent}
+					{#if !sasEvent}
+						<Spinner />
+					{:else}
+						<VerificationSas
+							sas={sasEvent.sas}
+							displayName={$verificationStore.request?.otherUserId}
+							{device}
+							on:cancel={() => sasEvent.mismatch()}
+							on:done={() => sasEvent.confirm()}
+							isSelfVerification={$verificationStore.request?.isSelfVerification}
+						/>
+					{/if}
 				{:else}
 					<p>Unkonwn verification Method...</p>
 					<button on:click={() => verificationStore.reset()}>Cancel</button>

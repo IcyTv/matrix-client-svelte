@@ -29,7 +29,7 @@
 			<TopBar />
 		{/if}
 
-		<div class="h-full w-full" class:pt-8={isTauri}>
+		<div class="h-full w-full overflow-hidden" class:pt-8={isTauri}>
 			<slot />
 		</div>
 

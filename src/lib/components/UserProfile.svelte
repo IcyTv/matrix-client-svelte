@@ -51,7 +51,7 @@
 		<div class="my-2 h-px w-full bg-slate-700" />
 		<p class="text-sm font-bold uppercase">MEMBER SINCE</p>
 		<div class="flex flex-row items-center gap-2">
-			<img src={roomImage} class="inline h-4 w-4 rounded-full" alt="Room" />
+			<img src={roomImage} class="inline h-4 w-4 rounded-full object-contain" alt="Room" />
 			<p class="text-sm text-slate-400" class:animate-pulse={!roomJoinTime} class:bg-gray-600={!roomJoinTime}>
 				{roomJoinTime ? df.format(roomJoinTime) : 'Unknown'}
 			</p>

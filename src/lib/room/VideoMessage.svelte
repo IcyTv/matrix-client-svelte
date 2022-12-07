@@ -6,8 +6,13 @@
 	export let event: MessageEvent;
 </script>
 
-<div class="h-full w-full overflow-visible">
-	<Media
+<div class="relative h-full w-full overflow-visible">
+	<video controls class="max-h-96 w-full max-w-md rounded" poster={event.body.image} preload="none">
+		<source src={event.body.video} type={event.body.mimeType} />
+		<track kind="captions" />
+	</video>
+
+	<!-- <Media
 		class="max-h-96 max-w-md rounded"
 		on:vds-fullscreen-change={(e) => console.log('FUllscreen', e)}
 		on:vds-fullscreen-error={console.error}
@@ -15,7 +20,7 @@
 	>
 		<MediaSync syncVolume singlePlayback volumeStorageKey="rooms-video-volume">
 			<MediaVisibility exitViewport="pause" intersectionThreshold={0.01}>
-				<Video controls poster={event.body.image} class="rounded" on:fullscreenchange={console.log} on:vds-fullscreen-change={console.log}>
+				<Video poster={event.body.image} class="rounded" on:fullscreenchange={console.log} on:vds-fullscreen-change={console.log}>
 					<video preload="metadata" src={event.body.video} class="rounded">
 						<track kind="captions" />
 					</video>
@@ -34,5 +39,8 @@
 		</div>
 
 		<Gesture action="toggle:paused" type="click" class="absolute inset-0" />
-	</Media>
+	</Media> -->
 </div>
+
+<style>
+</style>
