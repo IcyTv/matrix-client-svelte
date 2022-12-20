@@ -3,7 +3,7 @@
 	import Discover from 'carbon-icons-svelte/lib/Compass.svelte';
 	import SidebarIcon from './SidebarIcon.svelte';
 	import MatrixIcon from './icons/MatrixIcon.svelte';
-	import { client, isLoggedIn, rootSpaces } from '$lib/store';
+	import { client, rootSpaces } from '$lib/store';
 	import type { Room } from 'matrix-js-sdk';
 	import { goto } from '$app/navigation';
 

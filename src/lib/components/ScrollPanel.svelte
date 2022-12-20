@@ -49,6 +49,7 @@
 		offsetFromBottom: number;
 		offsetNode: HTMLElement;
 	} | null = null;
+	//TODO convert this to store to allow for others to react to changes?
 	let scrollState: {
 		stuckAtBottom: boolean;
 		trackedNode?: HTMLElement;
@@ -216,7 +217,8 @@
 		sn.scrollTop = 0;
 		saveScrollState();
 	};
-	const scrollToBottom = () => {
+
+	export const scrollToBottom = () => {
 		const sn = getScrollNode();
 		sn.scrollTop = sn.scrollHeight;
 		saveScrollState();
@@ -235,12 +237,9 @@
 
 	const saveScrollState = () => {
 		if (stickyAtBottom && isAtBottom()) {
-			console.log("Saved state: 'stuck at bottom'", isAtBottom());
 			scrollState = { stuckAtBottom: true };
 			return;
 		}
-
-		console.log("Saved state: 'not stuck at bottom'");
 
 		const sn = getScrollNode();
 		const viewportBottom = sn.scrollHeight - (sn.scrollTop + sn.clientHeight);
@@ -277,7 +276,6 @@
 
 	const restoreSavedScrollState = async () => {
 		if (scrollState.stuckAtBottom) {
-			console.log('Restoring scroll state: stuck at bottom');
 			const sn = getScrollNode();
 			if (sn.scrollTop !== sn.scrollHeight) {
 				sn.scrollTop = sn.scrollHeight;
@@ -452,7 +450,6 @@
 	};
 
 	const resetScrollState = () => {
-		console.log('Resetting scroll state');
 		scrollState = {
 			stuckAtBottom: startAtBottom,
 		};
@@ -475,7 +472,11 @@
 	onDestroy(() => {});
 </script>
 
-<div bind:this={divScroll} on:scroll={onScroll} class="scroll-panel flex-1 overflow-y-auto overflow-x-hidden {clazz}">
+<div
+	bind:this={divScroll}
+	on:scroll={onScroll}
+	class="scroll-panel flex-1 overflow-x-hidden scrollbar-thin scrollbar-track-slate-700 scrollbar-thumb-slate-900 scrollbar-thumb-rounded-lg {clazz}"
+>
 	<slot name="fixed" />
 	<div class="relative flex flex-col justify-end break-words">
 		<ol class="relative flex flex-col justify-end" bind:this={itemList} aria-live="polite">

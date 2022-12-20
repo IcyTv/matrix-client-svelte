@@ -124,7 +124,6 @@ export function createConnectionStore(config: typeof DEFAULT_JITSI_CONFIG, room:
 	};
 
 	connection = new JitsiMeetJS.JitsiConnection(undefined, null, config);
-	console.log('Connection created');
 
 	wireEventListeners('add', connection as any, events);
 	setStatus(ConnectionState.CONNECTING);

@@ -1,36 +1,30 @@
 <script lang="ts">
 	import { client } from '$lib/store';
-	import OverflowMenuHorizontal from 'carbon-icons-svelte/lib/OverflowMenuHorizontal.svelte';
-	import Reply from 'carbon-icons-svelte/lib/Reply.svelte';
-	import UserAvatar from 'carbon-icons-svelte/lib/UserAvatar.svelte';
-	import FaceAdd from 'carbon-icons-svelte/lib/FaceAdd.svelte';
-	import EMOJI_REGEX from 'emojibase-regex/emoji';
-	import { EventType, type MatrixEvent, type Room } from 'matrix-js-sdk';
+	import { EventType, MatrixEvent, RelationType, type Room } from 'matrix-js-sdk';
 	import Prism from 'prismjs';
 	import 'prismjs/plugins/autoloader/prism-autoloader';
 	import { afterUpdate, onDestroy, onMount } from 'svelte';
-	import { createPopperActions } from 'svelte-popperjs';
+	import { createPopperActions, type PopperOptions } from 'svelte-popperjs';
 	import Modal, { bind } from 'svelte-simple-modal';
 	import { clickOutside } from 'svelte-use-click-outside';
 	import { writable } from 'svelte/store';
 	import _ from 'underscore';
 	import '../../prism-one-dark.css';
 	import EmojiPicker from './EmojiPicker.svelte';
-	import ThreadIcon from './icons/ThreadIcon.svelte';
-	import ImagePopup from './ImagePopup.svelte';
 	import MessageInput from './MessageInput.svelte';
 	import UserProfile from './UserProfile.svelte';
-	import InfiniteLoading from 'svelte-infinite-loading';
 	import Spinner from './Spinner.svelte';
 	import DomPurify from 'dompurify';
 	import { marked } from 'marked';
 	import AllDone from './AllDone.svelte';
 	import TopBar from '$lib/room/TopBar.svelte';
 	import { formatDate, transformMessages } from '$lib/room/utils';
-	import { fade } from 'svelte/transition';
-	import VideoMessage from '$lib/room/VideoMessage.svelte';
-	import { roomsCache, timelineCacheStore } from '$lib/room/stores';
+	import { fade, scale } from 'svelte/transition';
+	import { timelineCacheStore } from '$lib/room/stores';
 	import MemberList from '$lib/room/MemberList.svelte';
+	import ScrollPanel from './ScrollPanel.svelte';
+	import { ChevronDown } from 'carbon-icons-svelte';
+	import Message from '$lib/room/Message.svelte';
 
 	Prism.plugins.autoloader.languages_path = 'https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/';
 	Prism.manual = true;
@@ -38,20 +32,23 @@
 	export let room: Room;
 	export let parentImage: string;
 
-	const ONLY_EMOJI_REGEX = new RegExp(`^(${EMOJI_REGEX.source})+$`);
-
 	$: timelineStore = timelineCacheStore.getTimelineStore(room.roomId);
-	$: {
-		console.log('Refreshing timeline');
-		timelineStore.refreshTimeline();
-	}
+	$: timelineState = timelineStore.state;
 
+	onMount(() => {
+		timelineStore.initTimeline();
+	});
+
+	let events: MatrixEvent[];
 	$: events = $timelineStore.firstVisibleEventIndex ? $timelineStore.events.slice($timelineStore.firstVisibleEventIndex) : $timelineStore.events;
+	$: events = events.filter((event) => !event.isRelation(RelationType.Replace));
+
+	//TODO remove this...
 	$: messages = transformMessages($client, events);
 
-	let messagesContainer: HTMLElement;
-
 	let emojiPicker: HTMLDivElement;
+
+	let replyingTo: MatrixEvent | undefined = undefined;
 
 	afterUpdate(() => {
 		Prism.highlightAll();
@@ -59,7 +56,7 @@
 
 	const modal = writable(null);
 
-	const [userProfileRef, userProfileContent] = createPopperActions({
+	const defaultPopper = {
 		placement: 'right-start',
 		strategy: 'fixed',
 		modifiers: [
@@ -77,41 +74,42 @@
 				},
 			},
 		],
+	} as PopperOptions<any>;
+
+	const [userProfileRef, userProfileContent] = createPopperActions(defaultPopper);
+
+	const [emojiPickerRef, emojiPickerContent] = createPopperActions({
+		...defaultPopper,
+		placement: 'left',
 	});
+	let emojiPickerOpen = false;
 
 	let userProfileId: string | null = null;
+
+	let scrollPanel: ScrollPanel;
+
+	const jumpToBottom = () => {
+		timelineStore.jumpToLiveTimeline();
+		scrollPanel.scrollToBottom();
+	};
 </script>
 
-<div class="flex max-w-[calc(100%-16rem)] flex-grow flex-col">
+<div class="flex h-full w-full flex-grow flex-col">
 	<TopBar {room} />
 
-	<div class="flex max-h-[calc(100%-40px)] max-w-full flex-grow flex-row">
+	<div class="flex h-[calc(100%-3em)] max-w-full flex-grow flex-row">
 		<div class="relative flex max-h-full max-w-full flex-grow flex-col">
-			<div bind:this={messagesContainer} class="flex max-h-full flex-grow flex-col scrollbar-thin scrollbar-thumb-slate-900 scrollbar-thumb-rounded-md" data-infinite-wrapper>
-				<InfiniteLoading
-					on:infinite={async (event) => {
-						try {
-							const isNotDone = await timelineStore.paginate(true);
-							event.detail.loaded();
+			<ScrollPanel onFillRequest={timelineStore.paginate} onUnfillRequest={timelineStore.unpaginate} bind:this={scrollPanel}>
+				{#if !$timelineState.paginationState.isBackPaginating && !$timelineState.paginationState.canBackPaginate}
+					<AllDone roomName={room.name} />
+				{/if}
 
-							if (isNotDone === false) {
-								event.detail.complete();
-							}
-						} catch (err) {
-							console.error('Error while paginating', err);
-							event.detail.error();
-						}
-					}}
-					direction="top"
-					forceUseInfiniteWrapper
-				>
-					<div slot="spinner" class="m-4 flex justify-center">
+				{#if $timelineState.paginationState.isBackPaginating}
+					<div class="flex w-full items-center justify-center" transition:fade|local>
 						<Spinner />
 					</div>
+				{/if}
 
-					<div slot="noResults">No results</div>
-					<div slot="noMore"><AllDone roomName={room.name} /></div>
-				</InfiniteLoading>
 				{#each messages as eventGroup, groupIndex}
 					{#if groupIndex === 0 || eventGroup.hasToShowDate}
 						<div class="my-2 flex w-full flex-row items-center justify-center px-2 py-1 text-sm font-bold text-gray-400">
@@ -120,175 +118,113 @@
 							<div class="mx-2 h-px flex-grow bg-gray-600" />
 						</div>
 					{/if}
-					<div class="flex w-full flex-col">
-						{#each eventGroup.events as event, i (event.event.getId())}
-							<div class="message-group group relative hover:bg-slate-800">
-								{#if i == 0}
-									<div
-										class="inline-flex h-fit cursor-pointer select-none items-center justify-center active:scale-95"
-										on:click={(e) => {
-											if (!userProfileId) {
-												userProfileId = eventGroup.sender;
-											} else {
-												userProfileId = null;
-											}
-											userProfileRef(e.currentTarget);
-										}}
-										on:keypress
-									>
-										{#if eventGroup.senderAvatar}
-											<img class="mx-4 mt-2 h-10 w-10 rounded-full " src={eventGroup.senderAvatar} alt="Profile Pictore" />
-										{:else}
-											<UserAvatar class="mx-4 h-10 w-10 rounded-full" />
-										{/if}
-									</div>
-								{:else}
-									<div class="invisible flex items-center justify-center group-hover:visible">
-										<p class="text-xs text-slate-400">{event.realTime}</p>
-									</div>
-								{/if}
-
-								<div>
-									{#if i == 0}
-										<div class="flex flex-row items-center gap-4">
-											<!-- svelte-ignore a11y-click-events-have-key-events -->
-											<p
-												style="color: {eventGroup.senderColor}"
-												class="cursor-pointer py-1 font-bold hover:underline"
-												on:click={(e) => {
-													if (!userProfileId) {
-														userProfileId = eventGroup.sender;
-													} else {
-														userProfileId = null;
-													}
-													userProfileRef(e.currentTarget);
-												}}
-											>
-												{eventGroup.senderName ?? '<Unknown>'}
-											</p>
-											<p class="text-sm font-light text-slate-500 group-hover:hidden">{eventGroup.humanTime}</p>
-											<p class="hidden text-sm font-light text-slate-500 group-hover:block">{event.realTime}</p>
-										</div>
-									{/if}
-									{#if event.body.mimeType.startsWith('image/')}
-										<img
-											class="max-h-96 max-w-full cursor-pointer rounded"
-											src={event.body.image}
-											alt={event.body.text}
-											on:click={() => {
-												modal.set(bind(ImagePopup, { src: event.body.image, text: event.body.text }));
-											}}
-											on:keydown
-										/>
-									{:else if event.body.mimeType.startsWith('video/')}
-										<VideoMessage {event} />
-									{:else if ONLY_EMOJI_REGEX.test(event.body.text)}
-										<p class="message-content w-full text-4xl">{event.body.text}</p>
-									{:else}
-										<p class="message-content w-full">
-											{@html event.body.text}
-											<!-- <span class=" invisible group-hover:visible absolute left-0">{event.humanTime}</span> -->
-										</p>
-									{/if}
-								</div>
-
-								<div
-									class="absolute right-2 top-0 mx-2 hidden -translate-y-1/2 flex-row items-center justify-center overflow-clip rounded bg-slate-800 shadow shadow-black group-hover:flex"
-								>
-									<button
-										on:click={(e) => {
-											const rect = e.currentTarget.getBoundingClientRect();
-											emojiPicker.style.left = `${rect.x}px`;
-											emojiPicker.style.top = `${rect.y}px`;
-											emojiPicker.classList.add('reaction-picker-open');
-											emojiPicker.dataset.eventId = event.event.getId();
-
-											const parent = e.currentTarget.parentElement?.parentElement;
-											parent?.classList.add('message-group-active');
-										}}
-									>
-										<FaceAdd class="message-action-button" />
-									</button>
-									<Reply class="message-action-button" />
-									<ThreadIcon class="message-action-button" />
-									<OverflowMenuHorizontal class="message-action-button" />
-								</div>
-							</div>
-						{/each}
-					</div>
+					{#each eventGroup.events as event, i (event.event.getId())}
+						<Message
+							modalStore={modal}
+							event={event.event}
+							isFirst={i === 0}
+							timelineSet={room.getUnfilteredTimelineSet()}
+							on:senderClick={(e) => {
+								if (!userProfileId) {
+									userProfileId = eventGroup.sender;
+								} else {
+									userProfileId = null;
+								}
+								userProfileRef(e.detail.originalEvent.currentTarget);
+							}}
+							on:emojiClick={(e) => {
+								emojiPickerRef(e.detail.target);
+								emojiPickerOpen = true;
+								setTimeout(() => {
+									emojiPicker.dataset.eventId = event.event.getId();
+								});
+							}}
+							on:redactReaction={(e) => {
+								// $client.redactEvent(event.event.getRoomId() ?? '', event.event.getId());
+								if (e.detail.reactionEvent) {
+									$client.redactEvent(event.event.getRoomId() ?? '', e.detail.reactionEvent.getId());
+								} else {
+									//TODO send reaction? Technically this should be handled by the message itself...
+								}
+							}}
+							on:reply={() => (replyingTo = event.event)}
+						/>
+					{/each}
+					<!-- </div> -->
 				{/each}
 
-				<InfiniteLoading
-					on:infinite={async (event) => {
-						try {
-							const lastEvent = events[events.length - 1];
-							if (!lastEvent) {
-								console.log('No last event');
-								setTimeout(() => {
-									event.detail.loaded();
-								}, 1000);
-								return;
-							} else {
-								timelineStore.unpaginate(true, lastEvent.getId());
-								event.detail.loaded();
-							}
-							// if (!isNotDone) event.detail.complete();
-						} catch (e) {
-							console.error(e);
-							event.detail.error();
-						}
-					}}
-					direction="bottom"
-					forceUseInfiniteWrapper
-				>
-					<div slot="spinner" class="m-4 flex justify-center">
+				{#if $timelineState.paginationState.isForwardPaginating}
+					<div class="flex w-full items-center justify-center" transition:fade|local>
 						<Spinner />
 					</div>
+				{/if}
+			</ScrollPanel>
 
-					<div slot="noResults">No results</div>
-				</InfiniteLoading>
-			</div>
+			{#if scrollPanel && !scrollPanel.isAtBottom()}
+				<button class="absolute bottom-24 right-4 rounded-full bg-slate-600" transition:fade|local on:click={jumpToBottom}>
+					<ChevronDown class="h-6 w-6" />
+				</button>
+			{/if}
 
 			<!-- TODO convert to popper -->
-			<EmojiPicker
-				on:click-outside={() => {
-					emojiPicker.classList.remove('reaction-picker-open');
-					document.querySelector('.message-group-active')?.classList.remove('message-group-active');
-				}}
-				on:emoji={(emoji) => {
-					emojiPicker.classList.remove('reaction-picker-open');
-					document.querySelector('.message-group-active')?.classList.remove('message-group-active');
+			{#if emojiPickerOpen}
+				<div use:emojiPickerContent transition:fade|local>
+					<EmojiPicker
+						on:click-outside={() => {
+							emojiPickerOpen = false;
+						}}
+						on:emoji={(emoji) => {
+							emojiPickerOpen = false;
 
-					$client.sendEvent(room.roomId, EventType.Reaction, {
-						'm.relates_to': {
-							event_id: emojiPicker.dataset.eventId,
-							key: emoji.detail.unicode,
-							rel_type: 'm.annotation',
-						},
-					});
-				}}
-				bind:node={emojiPicker}
-				class="fixed z-20 origin-right -translate-x-full -translate-y-1/2 scale-0 opacity-0 transition-[opacity,scale] duration-150 ease-in-out"
-			/>
+							$client.sendEvent(room.roomId, EventType.Reaction, {
+								'm.relates_to': {
+									event_id: emojiPicker.dataset.eventId,
+									key: emoji.detail.unicode,
+									rel_type: 'm.annotation',
+								},
+							});
+						}}
+						bind:node={emojiPicker}
+						class="z-20 origin-right"
+					/>
+				</div>
+			{/if}
 
 			<MessageInput
 				on:submit={(msg) => {
 					const htmlContent = marked.parseInline(msg.detail.content);
 					const html = DomPurify.sanitize(htmlContent);
-					$client.sendHtmlMessage(room.roomId, msg.detail.content, html).then((res) => {
-						console.log(res);
-						messagesContainer.scrollTo({
-							behavior: 'smooth',
-							top: messagesContainer.scrollHeight,
-						});
-					});
-				}}
-			/>
-			<!-- active={messageInputActive} -->
 
-			<!--TODO animate-->
+					if (!replyingTo) {
+						$client.sendHtmlMessage(room.roomId, msg.detail.content, html).then((res) => {
+							console.log(res);
+							jumpToBottom();
+						});
+					} else {
+						$client
+							.sendEvent(room.roomId, EventType.RoomMessage, {
+								'm.relates_to': {
+									'm.in_reply_to': {
+										event_id: replyingTo.getId(),
+									},
+								},
+								msgtype: 'm.text',
+								body: msg.detail.content,
+								format: 'org.matrix.custom.html',
+								formatted_body: html,
+							})
+							.then((res) => {
+								console.log(res);
+								jumpToBottom();
+								replyingTo = undefined;
+							});
+					}
+				}}
+				bind:replyingTo
+			/>
+
 			{#if userProfileId}
-				<div id="user-profile-tooltip" use:userProfileContent use:clickOutside={() => (userProfileId = null)} transition:fade>
+				<div id="user-profile-tooltip" use:userProfileContent use:clickOutside={() => (userProfileId = null)} transition:fade|local>
 					<UserProfile userId={userProfileId} {room} roomImage={parentImage} />
 				</div>
 			{/if}
@@ -318,16 +254,6 @@
 </div>
 
 <style>
-	.message-group {
-		@apply grid pr-8;
-		grid-template-columns: 5rem 1fr;
-		overflow-anchor: none;
-	}
-
-	.message-content :global(pre) {
-		@apply rounded;
-	}
-
 	:global(.fullsize-img) {
 		@apply scale-100 opacity-100;
 	}

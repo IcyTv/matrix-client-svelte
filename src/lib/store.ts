@@ -1,7 +1,7 @@
 import { writable, derived, get, readable, type Writable } from 'svelte/store';
 import * as sdk from 'matrix-js-sdk';
 
-import { ClientEvent, EventType, IndexedDBStore, MatrixEvent, type Room } from 'matrix-js-sdk';
+import { ClientEvent, EventType, IndexedDBStore, MatrixEvent, RoomEvent, type Room } from 'matrix-js-sdk';
 import type { MatrixCall } from 'matrix-js-sdk/lib/webrtc/call';
 import { createConnectionStore, DEFAULT_JITSI_CONFIG } from './jitsi/connectionStore';
 import { CryptoEvent, verificationMethods } from 'matrix-js-sdk/lib/crypto';
@@ -66,6 +66,7 @@ export const client = derived(
 					pendingEventOrdering: sdk.PendingEventOrdering.Detached,
 				});
 				await prom;
+				client.setGlobalErrorOnUnknownDevices(false);
 
 				const exportedDevice = await client.exportDevice();
 				exportedDevice.olmDevice.sessions = exportedDevice.olmDevice.sessions.filter((s) => !!s);
@@ -99,7 +100,6 @@ export const isLoggedIn = derived([client], ([$client], set) => {
 		$client?.off(ClientEvent.SyncUnexpectedError, updateLogin);
 	};
 });
-
 const MISMATCHES = ['m.key_mismatch', 'm.user_error', 'm.mismatched_sas'];
 
 interface VerificationStore {

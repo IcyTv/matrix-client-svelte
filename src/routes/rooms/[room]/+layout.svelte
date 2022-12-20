@@ -3,7 +3,7 @@
 	import { client, voiceCallSettings } from '$lib/store';
 	import { flip } from 'svelte/animate';
 	import { page } from '$app/stores';
-	import { RoomState, RoomStateEvent, type Room } from 'matrix-js-sdk';
+	import { EventType, RoomState, RoomStateEvent, type Room } from 'matrix-js-sdk';
 	import { slide } from 'svelte/transition';
 	import Hashtag from 'carbon-icons-svelte/lib/Hashtag.svelte';
 	import JitsiConference from '$lib/components/JitsiConference.svelte';
@@ -13,11 +13,18 @@
 	import User from 'carbon-icons-svelte/lib/User.svelte';
 	import UserSummary from '$lib/components/UserSummary.svelte';
 	import VolumeUpFilled from 'carbon-icons-svelte/lib/VolumeUpFilled.svelte';
+	import SidepanelRoomLink from '$lib/components/SidepanelRoomLink.svelte';
 
 	let roomId: string;
 	$: roomId = $page.params.room;
 	$: room = $client?.getRoom(roomId);
-	$: children = room?.currentState
+
+	//TODO space parent from query param or sth? Or store parent space in a store...
+	$: parentRoomId = room?.currentState.getStateEvents(EventType.SpaceParent)?.[0]?.getStateKey();
+	$: parentRoom = $client?.getRoom(parentRoomId!);
+	$: console.log(parentRoomId, parentRoom);
+
+	$: children = (parentRoom ?? room)?.currentState
 		.getStateEvents('m.space.child')
 		?.map((event) => {
 			return $client?.getRoom(event.getStateKey());
@@ -79,6 +86,7 @@
 	$: currentVoiceRoom = $voiceCallSettings.room && $client?.getRoom($voiceCallSettings.room);
 </script>
 
+<!-- TODO try and get parent room and mark on sidebar? -->
 <Sidebar />
 
 {#key room?.roomId}
@@ -89,14 +97,14 @@
 			</div>
 		{:else}
 			<div class="relative flex h-full w-64 flex-shrink-0 select-none flex-col bg-slate-800 shadow-lg shadow-black">
-				<ServerHeader bind:room class="mb-4" />
+				<ServerHeader room={parentRoom ?? room} class="mb-4" />
 
 				{#each children?.filter((c) => !c.isSpaceRoom()) ?? [] as child}
 					<div class="flex flex-col">
-						<a
+						<!-- <a
 							class="mx-2 mb-1 flex cursor-pointer flex-row items-center rounded shadow-slate-800 transition-all duration-75 hover:bg-slate-700 hover:shadow 
 							{currentlySelected == child.roomId ? 'bg-slate-700' : ''}"
-							href={`/rooms/${roomId}/${child.roomId}`}
+							href="/rooms/{child.roomId}"
 							on:click={onChannelClick(child)}
 						>
 							{#if child.isCallRoom() || child.isElementVideoRoom()}
@@ -105,7 +113,8 @@
 								<Hashtag class="h-8 w-8 p-2" />
 							{/if}
 							<p>{child.name}</p>
-						</a>
+						</a> -->
+						<SidepanelRoomLink room={child} currentlySelected={currentlySelected === child.roomId} on:channel-click={(e) => onChannelClick(child)(e.detail)} />
 
 						<!-- TODO think about weather we want to use element events here or if we (at some point) want to use jitsi connection events...
 								On the one hande element/matrix events work even outside of the conference,

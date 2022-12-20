@@ -17,6 +17,10 @@ const config = {
 			precompress: false,
 			strict: true,
 		}),
+
+		paths: {
+			base: process.env.GH_PAGES ? '/svelte-kit-gh-pages' : '',
+		},
 	},
 };
 

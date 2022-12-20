@@ -15,7 +15,7 @@
 
 <div
 	class="fixed inset-0 z-20 flex items-center justify-center bg-black bg-opacity-60"
-	transition:fade
+	transition:fade|local
 	on:click|self={() => dispatch('close')}
 	on:keydown={(e) => {
 		if (e.key === 'Escape') dispatch('close');

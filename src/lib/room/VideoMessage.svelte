@@ -1,14 +1,22 @@
 <script lang="ts">
+	import { client } from '$lib/store';
 	import { Gesture, Media, MediaSync, MediaVisibility, PlayButton, Poster, Video } from '@vidstack/player-svelte';
 	import { PlayFilled } from 'carbon-icons-svelte';
-	import type { MessageEvent } from './utils';
+	import type { MatrixEvent } from 'matrix-js-sdk';
 
-	export let event: MessageEvent;
+	export let event: MatrixEvent;
+
+	$: url = event.getContent()?.url;
+	$: mimeType = event.getContent()?.info?.mimetype ?? 'text/plain';
+	$: mxcPoster = event.getContent()?.info?.thumbnail_url ?? event.getContent()?.info?.thumbnail_file?.url ?? event.getContent()?.info?.thumbnail_url ?? event.getContent()?.url;
+
+	$: src = url && $client.mxcUrlToHttp(url);
+	$: poster = mxcPoster && $client.mxcUrlToHttp(mxcPoster);
 </script>
 
-<div class="relative h-full w-full overflow-visible">
-	<video controls class="max-h-96 w-full max-w-md rounded" poster={event.body.image} preload="none">
-		<source src={event.body.video} type={event.body.mimeType} />
+<div class="relative my-2 h-full w-full overflow-visible">
+	<video controls class="max-h-96 w-full max-w-md rounded" {poster} preload="none">
+		<source {src} type={mimeType} />
 		<track kind="captions" />
 	</video>
 

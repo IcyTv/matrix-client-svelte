@@ -3,6 +3,7 @@
 	import Spinner from '$lib/components/Spinner.svelte';
 	import UserSummary from '$lib/components/UserSummary.svelte';
 	import { client } from '$lib/store';
+	import DMs from '$lib/components/DMs.svelte';
 
 	let timeoutTriggered = false;
 	let timeout = setTimeout(() => {
@@ -21,7 +22,9 @@
 		<div class="h-full w-full">
 			<!-- TODO move to seperate component...-->
 			<div class="relative z-10 flex h-full w-64 flex-shrink-0 select-none flex-col bg-slate-800 shadow-lg shadow-black">
-				<div class="flex-grow" />
+				<div class="flex-grow">
+					<DMs />
+				</div>
 
 				<UserSummary />
 			</div>

@@ -45,7 +45,7 @@
 		{/if}
 		<div class="absolute bottom-0 right-0 h-8 w-8 rounded-full border-[6px] border-slate-800 bg-green-500" />
 	</div>
-	<div class="m-2 rounded-md bg-slate-900 p-2">
+	<div class="m-2 rounded-md bg-slate-900 p-2 shadow shadow-slate-900">
 		<p class="text-xl font-medium" class:animate-pulse={!user} class:bg-gray-600={!user}>{user?.displayName}</p>
 		<p class="text-sm text-slate-400" class:animate-pulse={!user} class:bg-gray-600={!user}>{user?.userId}</p>
 		<div class="my-2 h-px w-full bg-slate-700" />

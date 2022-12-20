@@ -45,7 +45,7 @@
 </script>
 
 {#if $memberListIsOpen}
-	<div class="w-64 flex-shrink-0 bg-slate-800 px-2 scrollbar-thin scrollbar-thumb-slate-500 scrollbar-thumb-rounded-lg" transition:horizontalSlide>
+	<div class="w-64 flex-shrink-0 bg-slate-800 px-2 overflow-x-hidden scrollbar-thin scrollbar-thumb-slate-500 scrollbar-thumb-rounded-lg" transition:horizontalSlide|local>
 		<div class="my-6 mx-2 flex flex-col">
 			{#each Object.entries(membersByPower).sort((a, b) => b[1][0].powerLevel - a[1][0].powerLevel) as [powerLevel, members]}
 				<div class="flex flex-col py-2">

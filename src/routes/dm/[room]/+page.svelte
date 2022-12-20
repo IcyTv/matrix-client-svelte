@@ -4,28 +4,18 @@
 	import Spinner from '$lib/components/Spinner.svelte';
 	import { client } from '$lib/store';
 
-	$: roomId = $page.params.channel;
-	$: parentRoomId = $page.params.room;
-
+	$: roomId = $page.params.room;
 	$: room = $client.getRoom(roomId);
-
-	$: parentRoomImage = $client.getRoom(parentRoomId)?.getAvatarUrl($client.baseUrl, 32, 32, 'crop');
 </script>
-
-<svelte:head>
-	<title>Matrix: #{room?.name || 'Loading...'}</title>
-</svelte:head>
 
 {#if !room}
 	<div class="flex h-full w-full items-center justify-center">
 		<Spinner />
 	</div>
-{:else if room.isElementVideoRoom()}
-	<!-- <JitsiConference {room} /> -->
 {:else}
 	<div class="h-full w-full">
 		{#key room.roomId}
-			<Room {room} parentImage={parentRoomImage ?? ''} />
+			<Room {room} parentImage="" />
 		{/key}
 	</div>
 {/if}

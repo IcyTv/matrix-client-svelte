@@ -14,6 +14,10 @@
 	import { EmojiEditor, withEmoji } from './slate/withEmoji';
 	import SendButton from './SendButton.svelte';
 	import { withCode } from 'svelte-slate/plugins/CodeElement.svelte';
+	import type { MatrixEvent } from 'matrix-js-sdk';
+	import { CloseFilled } from 'carbon-icons-svelte';
+
+	export let replyingTo: MatrixEvent | undefined = undefined;
 
 	let emojiList: EmojiList;
 
@@ -259,6 +263,14 @@
 </script>
 
 <div class="relative m-4 flex flex-row rounded-md bg-slate-600 px-4 py-3">
+	{#if replyingTo}
+		<div class="absolute left-0 right-0 top-0 flex -translate-y-full flex-row items-center justify-between rounded bg-slate-800 px-2 text-sm">
+			<p>Replying to <span class="font-bold">{replyingTo.sender?.name}</span></p>
+			<button class="p-2" on:click={() => (replyingTo = undefined)}>
+				<CloseFilled class="h-4 w-4 text-slate-400" />
+			</button>
+		</div>
+	{/if}
 	<div class="flex items-center justify-center">
 		<AddFilled class="mr-2 h-6 w-6 text-slate-400" />
 	</div>

@@ -2,6 +2,11 @@ import { EventType, MatrixClient } from 'matrix-js-sdk';
 import type { MatrixEvent } from 'matrix-js-sdk';
 import ColorHash from 'color-hash';
 import RelativeTime from '@yaireo/relative-time';
+import EMOJI_REGEX from 'emojibase-regex/emoji';
+
+export const ONLY_EMOJI_REGEX = new RegExp(`^(${EMOJI_REGEX.source})+$`);
+export const URL_REGEX =
+	/(https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|www\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9]+\.[^\s]{2,}|www\.[a-zA-Z0-9]+\.[^\s]{2,})/g;
 
 interface MessageBody {
 	image?: string;
@@ -15,6 +20,7 @@ export interface MessageEvent {
 	date: Date;
 	realTime: string;
 	body: MessageBody;
+	hasReply: boolean;
 }
 
 interface MessageEventGroup {
@@ -81,12 +87,13 @@ export const transformMessages = (client: MatrixClient, events: MatrixEvent[]) =
 					// mimeType: e.content.info?.mimetype ?? 'text/plain',
 					mimeType: e.getContent().info?.mimetype ?? 'text/plain',
 				},
+				hasReply: !!e.replyEventId,
 			} as MessageEvent;
 		})
 		.reduce<MessageEventGroup[]>((acc, val) => {
 			const prevSeq = acc[acc.length - 1];
 			// if (!prevSeq || prevSeq.sender !== val.event.sender || val.date.getTime() - prevSeq.date.getTime() > MAX_TIMESTAMP_DIFF) {
-			if (!prevSeq || prevSeq.sender !== val.event.getSender() || val.date.getTime() - prevSeq.date.getTime() > MAX_TIMESTAMP_DIFF) {
+			if (!prevSeq || prevSeq.sender !== val.event.getSender() || val.date.getTime() - prevSeq.date.getTime() > MAX_TIMESTAMP_DIFF || val.hasReply) {
 				const time = new RelativeTime();
 				// const sender = $client.getUser(val.event.sender);
 				const sender = client.getUser(val.event.getSender());

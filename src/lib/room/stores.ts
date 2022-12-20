@@ -114,14 +114,17 @@ export const createTimelineStore = (timelineSet: EventTimelineSet) => {
 		//performs a shallow copy of the array
 		// we want the last event to be decrypted first but displayed last
 		// `reverse` is destructive and unfortunately mutates the "events" array
-		events
-			.slice(0, events.length)
-			.reverse()
-			.forEach((event) => {
-				if (event.getType() === EventType.RoomMessageEncrypted) {
-					cl.decryptEventIfNeeded(event);
-				}
-			});
+		// events
+		// 	.slice(0, events.length)
+		// 	.reverse()
+		// 	.forEach((event) => {
+		// 		cl.decryptEventIfNeeded(event);
+		// 	});
+
+		// NOTE: Is there any good reason that matrix-react-sdk doesn't do this?
+		for (let i = 0; i < events.length; i++) {
+			cl.decryptEventIfNeeded(events[i]);
+		}
 
 		const firstVisibleEventIndex = checkForPrejoinUISI(events);
 
@@ -148,8 +151,14 @@ export const createTimelineStore = (timelineSet: EventTimelineSet) => {
 		return { events, liveEvents, firstVisibleEventIndex };
 	};
 
+	const updateStores = () => {
+		const evs = getEvents();
+		events.set(evs.events);
+		liveEvents.set(evs.liveEvents);
+		firstVisibleEventIndex.set(evs.firstVisibleEventIndex);
+	};
+
 	const onRoomTimeline = (ev: MatrixEvent, room: Room | undefined, toStartOfTimeline: boolean | undefined, removed: boolean, data: IRoomTimelineData) => {
-		console.log('onRoomTimeline');
 		if (data.timeline.getTimelineSet() !== timelineSet) return;
 
 		//TODO
@@ -172,15 +181,15 @@ export const createTimelineStore = (timelineSet: EventTimelineSet) => {
 		// updates from pagination will happen when the paginate completes.
 		if (toStartOfTimeline || !data || !data.liveEvent) return;
 
-		//TODO update based on scroll state?
-		if (!get(scrollPanel)?.getScrollState()) return;
-		if (!get(scrollPanel)?.getScrollState().stuckAtBottom) {
-			paginationState.update((state) => ({
-				...state,
-				canForwardPaginate: true,
-			}));
-			return;
-		}
+		// //TODO update based on scroll state?
+		// if (!get(scrollPanel)?.getScrollState()) return;
+		// if (!get(scrollPanel)?.getScrollState().stuckAtBottom) {
+		// 	paginationState.update((state) => ({
+		// 		...state,
+		// 		canForwardPaginate: true,
+		// 	}));
+		// 	return;
+		// }
 
 		// tell the timeline window to try to advance itself, but not to make
 		// a http request to do so.
@@ -193,11 +202,8 @@ export const createTimelineStore = (timelineSet: EventTimelineSet) => {
 		// see https://github.com/vector-im/vector-web/issues/1035
 		timelineWindow.paginate(Direction.Forward, 1, false).then(() => {
 			console.log('Paginated');
-			const evs = getEvents();
 			//TODO manage read markers?
-			events.set(evs.events);
-			liveEvents.set(evs.liveEvents);
-			firstVisibleEventIndex.set(evs.firstVisibleEventIndex);
+			updateStores();
 
 			get(scrollPanel)?.updateTimelineMinHeight();
 		});
@@ -235,12 +241,12 @@ export const createTimelineStore = (timelineSet: EventTimelineSet) => {
 		if (!get(events).includes(ev)) return;
 
 		recheckFirstVisibleEventIndex();
-		//TODO force update?
+		updateStores();
 	};
 	const onEventReplaced = (replacedEvent: MatrixEvent) => {
 		if (replacedEvent.getRoomId() !== timelineSet.room?.roomId) return;
 
-		// TODO again, force update here...
+		updateStores();
 	};
 	const onThreadUpdate = () => {};
 
@@ -262,8 +268,9 @@ export const createTimelineStore = (timelineSet: EventTimelineSet) => {
 	const jumpToLiveTimeline = () => {
 		if (timelineWindow.canPaginate(Direction.Forward)) {
 			loadTimeline();
+			return false;
 		} else {
-			//TODO scroll to bottom
+			return true;
 		}
 	};
 
